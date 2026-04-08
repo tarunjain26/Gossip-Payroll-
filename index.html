@@ -700,7 +700,7 @@ async function loadProfile(user){
   currentProfile=data;
 }
 async function loadEmployeesForAuth(){
-  const{data}=await sb.from('employees').select('id,name,role,shift_name').eq('is_active',true).order('name');
+  const{data}=await sb.from('employees').select('id,name,role,shift_name,pin').eq('is_active',true).order('name');
   employees=data||[];
   const s=document.getElementById('staff-sel');
   s.innerHTML='<option value="">Select your name…</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
