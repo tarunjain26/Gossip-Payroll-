@@ -855,7 +855,18 @@ function gs(id){
 }
 function showKiosk(){
   const el=document.getElementById('sec-kiosk');if(el)el.classList.add('on');
-  renderTiles();
+  // If a staff member is already logged in via PIN, go straight to punch screen
+  if(staffUser){
+    selEmp=staffUser;
+    document.getElementById('kpu-av').textContent=initials(staffUser.name);
+    document.getElementById('kpu-nm').textContent=staffUser.name;
+    document.getElementById('kpu-clk').textContent='';
+    showKioskStep('punch');
+    loadTodayLog();
+    startCam();
+  } else {
+    renderTiles();
+  }
 }
 function openModal(id){document.getElementById(id).classList.add('on');}
 function closeModal(id){document.getElementById(id).classList.remove('on');}
@@ -1811,11 +1822,20 @@ function kioskSelect(id){
   showKioskStep('pin');
 }
 function backToTiles(){
-  selEmp=null;pinVal='';
+  pinVal='';
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
   document.getElementById('si').style.display='none';
   document.getElementById('pmsg').textContent='';
-  renderTiles();showKioskStep('tiles');
+  // If staff is logged in via PIN, keep selEmp as them and stay on punch screen
+  // Only go back to tiles if this is a walk-up kiosk session (no staffUser)
+  if(staffUser){
+    selEmp=staffUser;
+    loadTodayLog();
+    showKioskStep('punch');
+  } else {
+    selEmp=null;
+    renderTiles();showKioskStep('tiles');
+  }
 }
 function updDots(){for(let i=0;i<4;i++)document.getElementById('dot'+i).classList.toggle('on',i<pinVal.length);}
 function pk(k){
@@ -1874,7 +1894,16 @@ async function doPunch(type){
   document.getElementById('pmsg').textContent=type==='in'?`✓ Clocked IN at ${time}`:`✓ Clocked OUT at ${time}`;
   await loadTodayLog();
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
-  setTimeout(backToTiles,2500);
+  // For walk-up kiosk (no logged-in staff), go back to tile screen after 2.5s
+  // For logged-in staff, just clear the message and stay on punch screen
+  if(staffUser){
+    setTimeout(()=>{
+      document.getElementById('pmsg').textContent='';
+      document.getElementById('si').style.display='none';
+    },2500);
+  } else {
+    setTimeout(backToTiles,2500);
+  }
 }
 
 // ══════════════════════════════════════════════════════════
