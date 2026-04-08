@@ -934,23 +934,81 @@ function handleXlsx(file){
   reader.onload=e=>{
     const wb=XLSX.read(e.target.result,{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
-    if(!rows.length){alert('No data found in file');return;}
+    // Get raw array of arrays so we can find the header row ourselves
+    const arr=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:false});
+    if(!arr.length){alert('No data found in file');return;}
+
+    // Find the header row — it's the row that contains 'name' somewhere
+    let headerRowIdx=-1;
+    for(let i=0;i<Math.min(arr.length,8);i++){
+      const rowStr=arr[i].join('|').toLowerCase();
+      if(rowStr.includes('name')&&(rowStr.includes('salary')||rowStr.includes('pin')||rowStr.includes('shift'))){
+        headerRowIdx=i;break;
+      }
+    }
+    if(headerRowIdx===-1){
+      document.getElementById('upload-preview').innerHTML='<div class="warn-box">Could not find the header row. Make sure your file has columns for Name, Salary and PIN.</div>';
+      return;
+    }
+
+    // Normalize headers: lowercase, replace spaces with _, strip *, strip trailing/leading underscores
+    const headers=arr[headerRowIdx].map(h=>String(h).toLowerCase().trim().replace(/\*/g,'').replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,''));
+
+    // Build rows from data below the header row, skipping note rows (short text-only rows)
+    const rows=[];
+    for(let i=headerRowIdx+1;i<arr.length;i++){
+      const rowArr=arr[i];
+      // Skip empty rows and note/instruction rows
+      const vals=rowArr.map(v=>String(v||'').trim()).filter(v=>v);
+      if(vals.length<2)continue;
+      const obj={};
+      headers.forEach((h,ci)=>{obj[h]=String(rowArr[ci]||'').trim();});
+      rows.push(obj);
+    }
+
+    if(!rows.length){
+      document.getElementById('upload-preview').innerHTML='<div class="warn-box">No data rows found after the header. Delete the example rows and add your employees.</div>';
+      return;
+    }
     previewXlsx(rows);
   };
   reader.readAsArrayBuffer(file);
 }
-function previewXlsx(rows){
-  // Normalize headers
-  const clean=rows.map(r=>{
-    const out={};
-    for(const[k,v]of Object.entries(r)){
-      out[k.toLowerCase().replace(/\s+/g,'_').replace(/\*$/,'').trim()]=String(v).trim();
-    }
-    return out;
-  }).filter(r=>r.name);
 
-  if(!clean.length){document.getElementById('upload-preview').innerHTML='<div class="warn-box">No valid rows found. Make sure column headers match the template.</div>';return;}
+// Fuzzy key lookup — finds value even if column name is slightly different
+function getVal(row,keys){
+  for(const k of keys){
+    // exact match
+    if(row[k]!==undefined&&row[k]!=='')return String(row[k]).trim();
+    // partial match
+    const found=Object.keys(row).find(rk=>rk.includes(k)||k.includes(rk));
+    if(found&&row[found]!==undefined&&row[found]!=='')return String(row[found]).trim();
+  }
+  return'';
+}
+
+function previewXlsx(rows){
+  const clean=rows.map(r=>{
+    return{
+      name:       getVal(r,['name','full_name','employee_name']),
+      role:       getVal(r,['role','designation','position']),
+      employee_code:getVal(r,['employee_code','emp_code','code','id','employee_id']),
+      phone:      getVal(r,['phone','mobile','contact','phone_number']),
+      monthly_salary:getVal(r,['monthly_salary','salary','monthly_pay','ctc']),
+      duty_hours: getVal(r,['duty_hours','duty_hrs','hours_per_day','hours','hrs']),
+      pin:        getVal(r,['pin','4_digit_pin','staff_pin','emp_pin']),
+      shift_name: getVal(r,['shift_name','shift','shift_type']),
+      shift_start:getVal(r,['shift_start','start_time','from']),
+      shift_end:  getVal(r,['shift_end','end_time','to']),
+      join_date:  getVal(r,['join_date','joining_date','date_of_joining','doj']),
+      bank_account_name:getVal(r,['bank_account_name','account_name','acc_name']),
+      bank_account_no:  getVal(r,['bank_account_no','account_number','acc_no','account_no']),
+      bank_ifsc:  getVal(r,['bank_ifsc','ifsc','ifsc_code']),
+      bank_name:  getVal(r,['bank_name','bank']),
+    };
+  }).filter(r=>r.name&&r.name.length>0);
+
+  if(!clean.length){document.getElementById('upload-preview').innerHTML='<div class="warn-box">No valid employee rows found. Make sure at least the Name column has data.</div>';return;}
 
   // Validate
   const errors=[];
