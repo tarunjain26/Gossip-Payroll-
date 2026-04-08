@@ -4,119 +4,165 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Gossip — Bakery & Cafe</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --sb:#ef9f27;--sb-d:#ba7517;--bg:#faf9f6;--bg2:#f2f0eb;--bg3:#e8e5de;
   --c1:#1a1916;--c2:#6b6860;--c3:#9b9890;
-  --border:rgba(0,0,0,0.10);--border2:rgba(0,0,0,0.18);
-  --green:#3b6d11;--gbg:#eaf3de;--red:#a32d2d;--rbg:#fcebeb;
-  --amber:#854f0b;--abg:#faeeda;--blue:#185fa5;--bbg:#e6f1fb;--purple:#3c3489;--pbg:#eeedfe;
-  --r:10px;--r2:14px;--r3:18px;
-  font-family:'DM Sans',sans-serif;font-size:14px;color:var(--c1);
+  --bd:rgba(0,0,0,0.09);--bd2:rgba(0,0,0,0.16);
+  --green:#2d6a0f;--gbg:#e8f5dc;--red:#a32d2d;--rbg:#fcebeb;
+  --amber:#7a4500;--abg:#faeeda;--blue:#185fa5;--bbg:#e6f1fb;
+  --purple:#3c3489;--pbg:#eeedfe;
+  --r:10px;--r2:14px;--r3:20px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);min-height:100vh}
-/* ── Layout ── */
+body{background:var(--bg);min-height:100vh;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--c1)}
+
+/* ── Auth screens ── */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--bg)}
+.auth-box{width:100%;max-width:380px}
+.auth-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
+.auth-logo-mark{width:48px;height:48px;border-radius:50%;background:var(--abg);display:flex;align-items:center;justify-content:center;font-size:22px}
+.auth-card{background:#fff;border:0.5px solid var(--bd);border-radius:var(--r3);padding:28px 24px}
+.auth-title{font-size:18px;font-weight:600;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--c2);margin-bottom:24px}
+.auth-tabs{display:flex;background:var(--bg2);border-radius:var(--r);padding:3px;gap:2px;margin-bottom:20px}
+.atab{flex:1;padding:7px;border:none;background:transparent;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--c2);letter-spacing:0.02em;transition:all .15s}
+.atab.on{background:#fff;color:var(--c1);border:0.5px solid var(--bd)}
+
+/* ── Shell ── */
 .shell{display:flex;flex-direction:column;min-height:100vh}
-.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border-bottom:0.5px solid var(--border);position:sticky;top:0;z-index:30}
-.logo-mark{width:34px;height:34px;border-radius:50%;background:var(--abg);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
-.topbar-name{flex:1;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar-sub{font-size:11px;color:var(--c2);font-weight:400}
-.mode-pill{display:flex;background:var(--bg2);border-radius:20px;padding:3px;gap:2px}
-.mpb{padding:5px 12px;border:none;border-radius:17px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:transparent;color:var(--c2);letter-spacing:0.02em}
-.mpb.on{background:var(--sb);color:#fff}
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border-bottom:0.5px solid var(--bd);position:sticky;top:0;z-index:30}
+.logo-mark{width:32px;height:32px;border-radius:50%;background:var(--abg);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.topbar-info{flex:1;min-width:0}
+.topbar-name{font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-sub{font-size:10px;color:var(--c2)}
+.user-chip{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg2);border-radius:20px;font-size:11px;font-weight:600;color:var(--c2);cursor:pointer;transition:all .15s;border:none;font-family:inherit}
+.user-chip:hover{background:var(--bg3)}
+.role-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rd-owner{background:#ef9f27}.rd-manager{background:#185fa5}.rd-staff{background:#3b6d11}
+
+/* ── Layout ── */
 .body{display:flex;flex:1}
-.sidebar{width:190px;flex-shrink:0;border-right:0.5px solid var(--border);padding:10px 8px;display:none;flex-direction:column;gap:2px;background:#fff;position:sticky;top:53px;height:calc(100vh - 53px);overflow-y:auto}
+.sidebar{width:188px;flex-shrink:0;border-right:0.5px solid var(--bd);padding:10px 8px;display:none;flex-direction:column;gap:2px;background:#fff;position:sticky;top:53px;height:calc(100vh - 53px);overflow-y:auto}
 .snav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--r);cursor:pointer;border:none;background:transparent;width:100%;text-align:left;font-family:inherit;font-size:13px;color:var(--c2);font-weight:500;transition:all .15s}
 .snav:hover{background:var(--bg2)}
 .snav.on{background:var(--abg);color:#633806}
-.snav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.snav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.snav-dis{opacity:0.35;cursor:not-allowed;pointer-events:none}
 .content{flex:1;min-width:0;padding:18px 16px 80px;overflow-y:auto}
-.btmnav{display:flex;border-top:0.5px solid var(--border);background:#fff;position:fixed;bottom:0;left:0;right:0;z-index:30}
+.btmnav{display:flex;border-top:0.5px solid var(--bd);background:#fff;position:fixed;bottom:0;left:0;right:0;z-index:30}
 .bnav{flex:1;padding:7px 2px 5px;border:none;background:transparent;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:1.5px;color:var(--c3);transition:color .15s}
 .bnav.on{color:var(--sb)}
 .bnav-i{font-size:17px;line-height:1}
-.bnav-l{font-size:9px;font-weight:600;letter-spacing:0.04em}
+.bnav-l{font-size:9px;font-weight:600;letter-spacing:0.03em}
+.bnav-dis{opacity:0.3;pointer-events:none}
+
 /* ── Sections ── */
 .sec{display:none}.sec.on{display:block}
-/* ── Cards ── */
-.card{background:#fff;border:0.5px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:12px}
-.card-title{font-size:13px;font-weight:600;margin-bottom:14px;color:var(--c1)}
-/* ── Forms ── */
+
+/* ── Cards / Forms ── */
+.card{background:#fff;border:0.5px solid var(--bd);border-radius:var(--r2);padding:16px;margin-bottom:12px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:14px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px}
 .field{display:flex;flex-direction:column;gap:3px}
 .field label{font-size:10px;color:var(--c2);font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
-input,select{width:100%;height:38px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-family:inherit;background:#fff;color:var(--c1);transition:border-color .15s,box-shadow .15s;appearance:none}
+input,select{width:100%;height:38px;padding:0 10px;border:0.5px solid var(--bd2);border-radius:var(--r);font-size:13px;font-family:inherit;background:#fff;color:var(--c1);transition:all .15s;-webkit-appearance:none;appearance:none}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b6860'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
 input:focus,select:focus{outline:none;border-color:var(--sb);box-shadow:0 0 0 3px rgba(239,159,39,0.15)}
+input[type=password]{letter-spacing:2px}
+.err-msg{font-size:11px;color:var(--red);margin-top:4px}
+
 /* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:var(--c1);transition:all .15s;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border:0.5px solid var(--bd2);border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;background:transparent;color:var(--c1);transition:all .15s;white-space:nowrap}
 .btn:hover{background:var(--bg2)}
 .btn:active{transform:scale(0.97)}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
 .btn-p{background:var(--sb);border-color:var(--sb);color:#fff;font-weight:600}
-.btn-p:hover{background:var(--sb-d);border-color:var(--sb-d)}
+.btn-p:hover{background:var(--sb-d)}
 .btn-g{background:var(--gbg);border-color:#7cb849;color:var(--green)}
 .btn-r{background:var(--rbg);border-color:#e57373;color:var(--red)}
+.btn-b{background:var(--bbg);border-color:#378add;color:var(--blue)}
 .btn-sm{height:28px;padding:0 10px;font-size:11px;border-radius:7px}
 .btn-ghost{background:transparent;border-color:transparent;color:var(--c2)}
 .btn-ghost:hover{background:var(--bg2)}
+.btn-full{width:100%}
+
 /* ── Tables ── */
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;padding:8px 12px;font-size:10px;font-weight:600;color:var(--c2);text-transform:uppercase;letter-spacing:0.05em;border-bottom:0.5px solid var(--border);white-space:nowrap;background:var(--bg2)}
-td{padding:8px 12px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+th{text-align:left;padding:8px 12px;font-size:10px;font-weight:600;color:var(--c2);text-transform:uppercase;letter-spacing:0.05em;border-bottom:0.5px solid var(--bd);white-space:nowrap;background:var(--bg2)}
+td{padding:8px 12px;border-bottom:0.5px solid var(--bd);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bg)}
+
 /* ── Badges ── */
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.03em}
-.bg{background:var(--gbg);color:var(--green)}
-.br{background:var(--rbg);color:var(--red)}
-.ba{background:var(--abg);color:var(--amber)}
-.bb{background:var(--bbg);color:var(--blue)}
-.bp{background:var(--pbg);color:var(--purple)}
-.bgr{background:var(--bg2);color:var(--c2)}
-/* ── Metric cards ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:0.02em}
+.bg{background:var(--gbg);color:var(--green)}.br{background:var(--rbg);color:var(--red)}
+.ba{background:var(--abg);color:var(--amber)}.bb{background:var(--bbg);color:var(--blue)}
+.bp{background:var(--pbg);color:var(--purple)}.bgr{background:var(--bg2);color:var(--c2)}
+.bwarn{background:#fff3cd;color:#856404}
+
+/* ── Metrics ── */
 .mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
 .mc{background:var(--bg2);border-radius:var(--r);padding:12px}
 .mc-l{font-size:10px;color:var(--c2);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px}
 .mc-v{font-size:20px;font-weight:600}
-/* ── Attendance grid ── */
-.att-card{background:#fff;border:0.5px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:10px}
+
+/* ── Attendance ── */
+.att-card{background:#fff;border:0.5px solid var(--bd);border-radius:var(--r2);padding:14px;margin-bottom:10px}
 .day-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-top:8px}
-.dchip{height:36px;border:none;border-radius:7px;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:opacity .1s;background:var(--bg2);color:var(--c3)}
+.dchip{height:36px;border:none;border-radius:7px;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:var(--bg2);color:var(--c3);transition:opacity .1s;position:relative}
 .dchip:hover{opacity:0.8}
-/* ── PIN pad ── */
-.pin-wrap{display:flex;flex-direction:column;align-items:center;padding:20px 16px 16px}
-.pin-dots{display:flex;gap:14px;margin:12px 0 6px}
-.pdot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border2);transition:all .15s}
-.pdot.on{background:var(--sb);border-color:var(--sb)}
-.pkgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:100%;max-width:240px;margin:10px 0}
-.pk{height:56px;font-size:21px;font-weight:600;border:0.5px solid var(--border);border-radius:var(--r2);background:#fff;cursor:pointer;color:var(--c1);transition:all .1s;font-family:'DM Mono',monospace}
-.pk:active{background:var(--bg2);transform:scale(0.95)}
-/* ── Salary slip ── */
+.dchip .warn-dot{position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#f59e0b}
+
+/* ── Salary ── */
 .sr{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;color:var(--c2);gap:8px}
 .sr.pos{color:var(--green)}.sr.neg{color:var(--red)}.sr.pu{color:var(--purple)}
-.stot{display:flex;justify-content:space-between;font-size:15px;font-weight:600;padding:10px 0 0;border-top:1.5px solid var(--border);margin-top:8px}
-/* ── Staff tile ── */
-.emp-tile{display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:0.5px solid var(--border);border-radius:var(--r2);cursor:pointer;transition:all .15s;margin-bottom:8px}
+.stot{display:flex;justify-content:space-between;font-size:16px;font-weight:600;padding:10px 0 0;border-top:1.5px solid var(--bd);margin-top:8px}
+
+/* ── Staff punch ── */
+.emp-tile{display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:0.5px solid var(--bd);border-radius:var(--r2);cursor:pointer;transition:all .15s;margin-bottom:8px}
 .emp-tile:hover{border-color:var(--sb);background:rgba(239,159,39,0.04)}
 .emp-tile:active{transform:scale(0.99)}
-/* ── Avatar ── */
 .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+
+/* ── PIN ── */
+.pin-wrap{display:flex;flex-direction:column;align-items:center;padding:20px 16px 16px}
+.pin-dots{display:flex;gap:14px;margin:12px 0 6px}
+.pdot{width:16px;height:16px;border-radius:50%;border:2px solid var(--bd2);transition:all .15s}
+.pdot.on{background:var(--sb);border-color:var(--sb)}
+.pkgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:100%;max-width:240px;margin:10px 0}
+.pk{height:56px;font-size:21px;font-weight:600;border:0.5px solid var(--bd);border-radius:var(--r2);background:#fff;cursor:pointer;color:var(--c1);transition:all .1s;font-family:'DM Mono',monospace}
+.pk:active{background:var(--bg2);transform:scale(0.95)}
+
+/* ── Staff my-slip ── */
+.myslip-emp{display:flex;align-items:center;gap:12px;padding:14px;background:#fff;border:0.5px solid var(--bd);border-radius:var(--r2);cursor:pointer;margin-bottom:8px;transition:all .15s}
+.myslip-emp:hover{border-color:var(--sb)}
+
+/* ── Modal ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;align-items:center;justify-content:center;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:var(--r3);padding:24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--c2);line-height:1;padding:0 4px}
+
 /* ── Misc ── */
 .empty{text-align:center;padding:3rem 1rem;color:var(--c3);font-size:13px}
-.err{font-size:11px;color:var(--red);margin-top:3px}
-.page-title{font-size:16px;font-weight:600;margin-bottom:16px;color:var(--c1)}
+.page-title{font-size:16px;font-weight:600;margin-bottom:16px}
 .fl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .month-nav{display:flex;align-items:center;gap:0}
-.mnb{width:32px;height:32px;border:0.5px solid var(--border);border-radius:var(--r);background:transparent;font-size:16px;cursor:pointer;color:var(--c1);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.mnb{width:32px;height:32px;border:0.5px solid var(--bd);border-radius:var(--r);background:transparent;font-size:16px;cursor:pointer;color:var(--c1);display:flex;align-items:center;justify-content:center}
 .mnb:hover{background:var(--bg2)}
 .mnl{min-width:120px;text-align:center;font-size:14px;font-weight:600}
 .selfie-vid{width:100%;border-radius:var(--r2);background:#111;height:140px;object-fit:cover;display:block}
+.divider{height:0.5px;background:var(--bd);margin:16px 0}
+.info-box{background:var(--bbg);border:0.5px solid #b5d4f4;border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--blue);margin-bottom:12px;line-height:1.6}
+.warn-box{background:#fff3cd;border:0.5px solid #ffc107;border-radius:var(--r);padding:10px 12px;font-size:12px;color:#856404;margin-bottom:12px;line-height:1.6}
+
 /* ── Responsive ── */
 @media(min-width:640px){
   .sidebar{display:flex}
@@ -131,498 +177,751 @@ tr:hover td{background:var(--bg)}
 }
 @media print{
   .topbar,.sidebar,.btmnav,.no-print{display:none!important}
-  body{background:#fff}
   .content{padding:0}
 }
 </style>
 </head>
 <body>
-<div class="shell">
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <div class="logo-mark">☕</div>
-  <div style="flex:1;min-width:0">
-    <div class="topbar-name">Gossip — Artisan Bakery & Cafe</div>
-    <div class="topbar-sub" id="top-date"></div>
-  </div>
-  <div class="mode-pill">
-    <button class="mpb on" onclick="setMode('admin')">Admin</button>
-    <button class="mpb" onclick="setMode('staff')">Staff</button>
+<!-- ══════════════════════════════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════════════════════════════ -->
+<div id="screen-auth" class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-mark">☕</div>
+      <div>
+        <div style="font-size:17px;font-weight:600">Gossip</div>
+        <div style="font-size:12px;color:var(--c2)">Artisan Bakery & Cafe</div>
+      </div>
+    </div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="atab on" onclick="authTab('admin')">Admin / Manager</button>
+        <button class="atab" onclick="authTab('staff')">Staff</button>
+      </div>
+
+      <!-- Admin login -->
+      <div id="auth-admin">
+        <div class="field" style="margin-bottom:10px">
+          <label>Email</label>
+          <input id="login-email" type="email" placeholder="you@gossipbakery.com" autocomplete="email">
+        </div>
+        <div class="field" style="margin-bottom:16px">
+          <label>Password</label>
+          <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div id="login-err" class="err-msg" style="margin-bottom:10px"></div>
+        <button class="btn btn-p btn-full" onclick="doLogin()" id="login-btn">Sign in</button>
+      </div>
+
+      <!-- Staff PIN -->
+      <div id="auth-staff" style="display:none">
+        <div style="font-size:13px;color:var(--c2);margin-bottom:14px">Select your name, then enter your 4-digit PIN</div>
+        <div class="field" style="margin-bottom:14px">
+          <label>Your name</label>
+          <select id="staff-sel"><option value="">Select your name…</option></select>
+        </div>
+        <button class="btn btn-p btn-full" onclick="goStaffPin()">Continue</button>
+        <div style="margin-top:12px;text-align:center">
+          <button class="btn btn-ghost btn-sm" onclick="goStaffPunch()">Just punch in/out →</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<div class="body">
-  <!-- SIDEBAR -->
-  <div class="sidebar" id="sidebar">
-    <div id="admin-snav">
-      <button class="snav on" onclick="gp('team')"><span class="snav-icon">👤</span>Team</button>
-      <button class="snav" onclick="gp('att')"><span class="snav-icon">📅</span>Attendance</button>
-      <button class="snav" onclick="gp('punches')"><span class="snav-icon">🕐</span>Punch log</button>
-      <button class="snav" onclick="gp('advances')"><span class="snav-icon">💰</span>Advances</button>
-      <button class="snav" onclick="gp('salary')"><span class="snav-icon">📊</span>Salary</button>
-      <button class="snav" onclick="gp('slip')"><span class="snav-icon">🧾</span>Salary slip</button>
+<!-- ══════════════════════════════════════════════════════════
+     MAIN APP
+══════════════════════════════════════════════════════════ -->
+<div id="screen-app" class="shell" style="display:none">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo-mark">☕</div>
+    <div class="topbar-info">
+      <div class="topbar-name">Gossip — Artisan Bakery & Cafe</div>
+      <div class="topbar-sub" id="top-date"></div>
     </div>
-    <div id="staff-snav" style="display:none">
-      <button class="snav on"><span class="snav-icon">👋</span>Punch in/out</button>
-    </div>
+    <button class="user-chip" onclick="showUserMenu()" id="user-chip">
+      <div class="role-dot" id="user-dot"></div>
+      <span id="user-name">…</span>
+      <span style="opacity:0.5">▾</span>
+    </button>
   </div>
 
-  <!-- MAIN CONTENT -->
-  <div class="content" id="main">
-
-    <!-- ══ ADMIN AREA ══ -->
-    <div id="admin-area">
-
-      <!-- TEAM -->
-      <div id="sec-team" class="sec on">
-        <div class="page-title">Team</div>
-        <div class="card">
-          <div class="card-title">Add employee</div>
-          <div class="g3">
-            <div class="field"><label>Full name *</label><input id="e-name" placeholder="Priya Sharma"></div>
-            <div class="field"><label>Role</label><input id="e-role" placeholder="Head Baker"></div>
-            <div class="field"><label>Employee ID</label><input id="e-code" placeholder="GB-001"></div>
-          </div>
-          <div class="g4">
-            <div class="field"><label>Phone</label><input id="e-phone" type="tel" placeholder="98XXXXXXXX"></div>
-            <div class="field"><label>Shift name</label><input id="e-shift" placeholder="Morning"></div>
-            <div class="field"><label>Shift start</label><input id="e-sin" type="time" value="09:00"></div>
-            <div class="field"><label>Shift end</label><input id="e-sout" type="time" value="19:00"></div>
-          </div>
-          <div class="g4">
-            <div class="field"><label>Monthly salary ₹ *</label><input id="e-sal" type="number" placeholder="18000"></div>
-            <div class="field"><label>Duty hours/day *</label><input id="e-dh" type="number" value="10"></div>
-            <div class="field"><label>4-digit PIN *</label><input id="e-pin" type="number" placeholder="1234" maxlength="4"></div>
-            <div class="field"><label>Join date</label><input id="e-join" type="date"></div>
-          </div>
-          <div class="fl">
-            <button class="btn btn-p" onclick="addEmployee()">Add employee</button>
-            <button class="btn btn-ghost" onclick="clearEmpForm()">Clear</button>
-          </div>
-          <div id="e-err" class="err"></div>
-        </div>
-        <div id="emp-list"></div>
+  <div class="body">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div id="admin-nav" style="display:none">
+        <button class="snav on" onclick="gp('team')"><span class="snav-icon">👤</span>Team</button>
+        <button class="snav" onclick="gp('att')"><span class="snav-icon">📅</span>Attendance</button>
+        <button class="snav" onclick="gp('punches')"><span class="snav-icon">🕐</span>Punch log</button>
+        <button class="snav" onclick="gp('advances')"><span class="snav-icon">💰</span>Advances</button>
+        <button class="snav" onclick="gp('salary')"><span class="snav-icon">📊</span>Salary</button>
+        <button class="snav" onclick="gp('slip')"><span class="snav-icon">🧾</span>Salary slip</button>
+        <button class="snav" id="sn-managers" onclick="gp('managers')"><span class="snav-icon">🔑</span>Managers</button>
+        <div class="divider" style="margin:8px 0"></div>
+        <button class="snav" onclick="gp('punch-kiosk')"><span class="snav-icon">👋</span>Staff kiosk</button>
       </div>
-
-      <!-- ATTENDANCE -->
-      <div id="sec-att" class="sec">
-        <div class="fl" style="margin-bottom:16px;gap:12px;flex-wrap:wrap">
-          <div class="page-title" style="margin:0">Attendance</div>
-          <div class="month-nav">
-            <button class="mnb" onclick="chM(-1)">‹</button>
-            <div class="mnl" id="att-ml"></div>
-            <button class="mnb" onclick="chM(1)">›</button>
-          </div>
-        </div>
-        <div class="fl" style="margin-bottom:12px;gap:6px;font-size:11px;color:var(--c2);flex-wrap:wrap">
-          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--gbg);display:inline-block"></span>Present</span>
-          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--rbg);display:inline-block"></span>Absent</span>
-          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--abg);display:inline-block"></span>Half day</span>
-          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--bbg);display:inline-block"></span>Paid leave</span>
-          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--pbg);display:inline-block"></span>Leave bonus</span>
-          <span style="color:var(--c3)">· Tap day to cycle status · No punch = unmarked</span>
-        </div>
-        <div id="att-wrap"></div>
+      <div id="staff-nav" style="display:none">
+        <button class="snav on" onclick="gs('myslip')"><span class="snav-icon">🧾</span>My salary slip</button>
+        <button class="snav" onclick="gs('myatt')"><span class="snav-icon">📅</span>My attendance</button>
+        <button class="snav" onclick="gs('punch-kiosk')"><span class="snav-icon">👋</span>Punch in/out</button>
       </div>
+    </div>
 
-      <!-- PUNCHES -->
-      <div id="sec-punches" class="sec">
-        <div class="page-title">Punch log</div>
-        <div class="card">
-          <div class="card-title">Manual punch entry</div>
-          <div class="g4">
-            <div class="field"><label>Employee</label><select id="p-emp"><option value="">Select</option></select></div>
-            <div class="field"><label>Date</label><input id="p-date" type="date"></div>
-            <div class="field"><label>Time</label><input id="p-time" type="time"></div>
-            <div class="fl" style="align-items:flex-end;padding-bottom:0">
-              <button class="btn btn-g" style="flex:1" onclick="adminPunch('in')">IN</button>
-              <button class="btn btn-r" style="flex:1" onclick="adminPunch('out')">OUT</button>
+    <!-- Content -->
+    <div class="content" id="main-content">
+
+      <!-- ── ADMIN SECTIONS ── -->
+      <div id="admin-sections" style="display:none">
+
+        <!-- TEAM -->
+        <div id="sec-team" class="sec on">
+          <div class="page-title">Team</div>
+          <div class="card" id="add-emp-card">
+            <div class="card-title">Add employee</div>
+            <div class="g3">
+              <div class="field"><label>Full name *</label><input id="e-name" placeholder="Priya Sharma"></div>
+              <div class="field"><label>Role</label><input id="e-role" placeholder="Head Baker"></div>
+              <div class="field"><label>Employee ID</label><input id="e-code" placeholder="GB-001"></div>
+            </div>
+            <div class="g4">
+              <div class="field"><label>Phone</label><input id="e-phone" type="tel" placeholder="98XXXXXXXX"></div>
+              <div class="field"><label>Shift name</label><input id="e-shift" placeholder="Morning"></div>
+              <div class="field"><label>Shift start</label><input id="e-sin" type="time" value="09:00"></div>
+              <div class="field"><label>Shift end</label><input id="e-sout" type="time" value="19:00"></div>
+            </div>
+            <div class="g4">
+              <div class="field"><label>Monthly salary ₹ *</label><input id="e-sal" type="number" placeholder="18000"></div>
+              <div class="field"><label>Duty hours/day</label><input id="e-dh" type="number" value="10"></div>
+              <div class="field"><label>4-digit PIN *</label><input id="e-pin" type="number" placeholder="1234"></div>
+              <div class="field"><label>Join date</label><input id="e-join" type="date"></div>
+            </div>
+            <div class="fl">
+              <button class="btn btn-p" onclick="addEmployee()">Add employee</button>
+              <button class="btn btn-ghost" onclick="clearEmpForm()">Clear</button>
+            </div>
+            <div id="e-err" class="err-msg"></div>
+          </div>
+          <div id="emp-list"></div>
+        </div>
+
+        <!-- ATTENDANCE -->
+        <div id="sec-att" class="sec">
+          <div class="fl" style="margin-bottom:16px;gap:12px;flex-wrap:wrap">
+            <div class="page-title" style="margin:0">Attendance</div>
+            <div class="month-nav">
+              <button class="mnb" onclick="chM(-1)">‹</button>
+              <div class="mnl" id="att-ml"></div>
+              <button class="mnb" onclick="chM(1)">›</button>
             </div>
           </div>
+          <div class="fl" style="margin-bottom:12px;gap:6px;font-size:11px;flex-wrap:wrap">
+            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--gbg);display:inline-block"></span>Present</span>
+            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--rbg);display:inline-block"></span>Absent</span>
+            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--abg);display:inline-block"></span>Half</span>
+            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--bbg);display:inline-block"></span>Paid leave</span>
+            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--pbg);display:inline-block"></span>Leave bonus</span>
+            <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block"></span>Auto punch-out used</span>
+            <span style="color:var(--c3)">· Tap day to change status</span>
+          </div>
+          <div id="att-wrap"></div>
         </div>
-        <div id="punch-list"></div>
-      </div>
 
-      <!-- ADVANCES -->
-      <div id="sec-advances" class="sec">
-        <div class="page-title">Advances & deductions</div>
-        <div class="card">
-          <div class="card-title">New record</div>
-          <div class="g4">
-            <div class="field"><label>Employee</label><select id="adv-emp"><option value="">Select</option></select></div>
-            <div class="field"><label>Date</label><input id="adv-date" type="date"></div>
-            <div class="field"><label>Type</label>
-              <select id="adv-type"><option value="advance">Advance</option><option value="deduction">Deduction</option></select>
-            </div>
-            <div class="field"><label>Amount ₹</label><input id="adv-amt" type="number" placeholder="500"></div>
-          </div>
-          <div class="g2" style="margin-bottom:12px">
-            <div class="field"><label>Reason / note</label><input id="adv-note" placeholder="e.g. Festival advance"></div>
-            <div style="display:flex;align-items:flex-end"><button class="btn btn-p" onclick="saveAdvance()">Save record</button></div>
-          </div>
-        </div>
-        <div id="adv-list"></div>
-      </div>
-
-      <!-- SALARY -->
-      <div id="sec-salary" class="sec">
-        <div class="fl" style="margin-bottom:16px;gap:12px;flex-wrap:wrap">
-          <div class="page-title" style="margin:0">Salary</div>
-          <div class="month-nav">
-            <button class="mnb" onclick="chSM(-1)">‹</button>
-            <div class="mnl" id="sal-ml"></div>
-            <button class="mnb" onclick="chSM(1)">›</button>
-          </div>
-          <button class="btn btn-p" onclick="calcSalary()">Calculate all</button>
-          <button class="btn" style="background:var(--gbg);border-color:#7cb849;color:var(--green)" onclick="finalizeSalary()">Finalize & save slips</button>
-        </div>
-        <div class="mg" id="sal-metrics"></div>
-        <div id="sal-cards"></div>
-      </div>
-
-      <!-- SLIP -->
-      <div id="sec-slip" class="sec">
-        <div class="page-title">Salary slip</div>
-        <div class="card">
-          <div class="g3" style="margin-bottom:12px">
-            <div class="field"><label>Employee</label><select id="slip-emp"><option value="">Select</option></select></div>
-            <div class="field"><label>Month</label>
-              <select id="slip-mon"></select>
-            </div>
-            <div class="field"><label>Year</label><input id="slip-yr" type="number" value="2026"></div>
-          </div>
-          <div class="fl">
-            <button class="btn btn-p" onclick="viewSlip()">View slip</button>
-            <button class="btn no-print" onclick="window.print()">Print / Save PDF</button>
-          </div>
-        </div>
-        <div id="slip-out"></div>
-      </div>
-
-    </div><!-- end admin-area -->
-
-    <!-- ══ STAFF AREA ══ -->
-    <div id="staff-area" style="display:none">
-      <!-- TILES -->
-      <div id="sf-tiles">
-        <div style="font-size:16px;font-weight:600;margin-bottom:4px">Who are you?</div>
-        <div style="font-size:13px;color:var(--c2);margin-bottom:16px">Tap your name to clock in or out</div>
-        <div id="emp-tiles"></div>
-      </div>
-      <!-- PIN -->
-      <div id="sf-pin" style="display:none">
-        <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px">← Back</button>
-        <div style="max-width:320px;background:#fff;border:0.5px solid var(--border);border-radius:var(--r3);overflow:hidden">
-          <div class="pin-wrap">
-            <div class="av" id="sf-av" style="width:52px;height:52px;font-size:19px;background:var(--abg);color:#633806;margin-bottom:6px"></div>
-            <div id="sf-nm" style="font-size:16px;font-weight:600;margin-bottom:2px"></div>
-            <div id="sf-rl" style="font-size:12px;color:var(--c2);margin-bottom:12px"></div>
-            <div id="sf-clk" style="font-size:19px;font-weight:600;color:var(--c1);margin-bottom:4px;font-family:'DM Mono',monospace"></div>
-            <div style="font-size:12px;color:var(--c2);margin-bottom:8px">Enter your 4-digit PIN</div>
-            <div class="pin-dots"><div class="pdot" id="dot0"></div><div class="pdot" id="dot1"></div><div class="pdot" id="dot2"></div><div class="pdot" id="dot3"></div></div>
-            <div id="pin-err" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:4px"></div>
-            <div class="pkgrid">
-              <button class="pk" onclick="pk('1')">1</button><button class="pk" onclick="pk('2')">2</button><button class="pk" onclick="pk('3')">3</button>
-              <button class="pk" onclick="pk('4')">4</button><button class="pk" onclick="pk('5')">5</button><button class="pk" onclick="pk('6')">6</button>
-              <button class="pk" onclick="pk('7')">7</button><button class="pk" onclick="pk('8')">8</button><button class="pk" onclick="pk('9')">9</button>
-              <button class="pk" onclick="pk('C')" style="font-size:12px;font-family:'DM Sans',sans-serif">Clear</button>
-              <button class="pk" onclick="pk('0')">0</button>
-              <button class="pk" onclick="pk('X')" style="font-size:17px">⌫</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- PUNCH -->
-      <div id="sf-punch" style="display:none">
-        <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px">← Back</button>
-        <div style="max-width:360px">
+        <!-- PUNCHES -->
+        <div id="sec-punches" class="sec">
+          <div class="page-title">Punch log</div>
           <div class="card">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
-              <div class="av" id="sp-av" style="width:44px;height:44px;font-size:16px;background:var(--abg);color:#633806"></div>
-              <div><div id="sp-nm" style="font-size:15px;font-weight:600"></div><div id="sp-clk" style="font-size:12px;color:var(--c2);font-family:'DM Mono',monospace"></div></div>
-            </div>
-            <div style="margin-bottom:12px">
-              <video id="sv" class="selfie-vid" autoplay playsinline muted></video>
-              <canvas id="sc" style="display:none"></canvas>
-              <img id="si" style="display:none;width:100%;border-radius:var(--r2);margin-top:6px;border:0.5px solid var(--border)">
-              <div class="fl" style="margin-top:8px">
-                <button class="btn btn-ghost btn-sm" style="flex:1" onclick="startCam()">Camera</button>
-                <button class="btn btn-ghost btn-sm" style="flex:1" onclick="capSelfie()">Capture</button>
+            <div class="card-title">Add / correct punch</div>
+            <div class="g4">
+              <div class="field"><label>Employee</label><select id="p-emp"><option value="">Select</option></select></div>
+              <div class="field"><label>Date</label><input id="p-date" type="date"></div>
+              <div class="field"><label>Time</label><input id="p-time" type="time"></div>
+              <div class="fl" style="align-items:flex-end;padding-bottom:0;gap:6px">
+                <button class="btn btn-g" style="flex:1" onclick="adminPunch('in')">IN</button>
+                <button class="btn btn-r" style="flex:1" onclick="adminPunch('out')">OUT</button>
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-              <button onclick="doPunch('in')" style="height:52px;font-size:15px;font-weight:600;border-radius:var(--r2);border:none;background:var(--gbg);color:var(--green);cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Clock IN</button>
-              <button onclick="doPunch('out')" style="height:52px;font-size:15px;font-weight:600;border-radius:var(--r2);border:none;background:var(--rbg);color:var(--red);cursor:pointer;font-family:inherit;transition:all .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Clock OUT</button>
+          </div>
+          <div id="punch-list"></div>
+        </div>
+
+        <!-- ADVANCES -->
+        <div id="sec-advances" class="sec">
+          <div class="page-title">Advances & deductions</div>
+          <div class="card">
+            <div class="card-title">New record</div>
+            <div class="g4">
+              <div class="field"><label>Employee</label><select id="adv-emp"><option value="">Select</option></select></div>
+              <div class="field"><label>Date</label><input id="adv-date" type="date"></div>
+              <div class="field"><label>Type</label><select id="adv-type"><option value="advance">Advance</option><option value="deduction">Deduction</option></select></div>
+              <div class="field"><label>Amount ₹</label><input id="adv-amt" type="number" placeholder="500"></div>
             </div>
-            <div id="pmsg" style="text-align:center;font-size:13px;font-weight:600;min-height:20px;color:var(--c1)"></div>
-            <div id="tdlog" style="margin-top:12px"></div>
+            <div class="g2" style="margin-bottom:12px">
+              <div class="field"><label>Reason / note</label><input id="adv-note" placeholder="e.g. Festival advance"></div>
+              <div style="display:flex;align-items:flex-end"><button class="btn btn-p" onclick="saveAdvance()">Save</button></div>
+            </div>
+          </div>
+          <div id="adv-list"></div>
+        </div>
+
+        <!-- SALARY -->
+        <div id="sec-salary" class="sec">
+          <div class="fl" style="margin-bottom:16px;gap:12px;flex-wrap:wrap">
+            <div class="page-title" style="margin:0">Salary</div>
+            <div class="month-nav">
+              <button class="mnb" onclick="chSM(-1)">‹</button>
+              <div class="mnl" id="sal-ml"></div>
+              <button class="mnb" onclick="chSM(1)">›</button>
+            </div>
+            <button class="btn btn-p" onclick="calcSalary()">Calculate all</button>
+            <button class="btn btn-g" id="finalize-btn" onclick="finalizeSalary()">Finalize & save slips</button>
+          </div>
+          <div class="mg" id="sal-metrics"></div>
+          <div id="sal-cards"></div>
+        </div>
+
+        <!-- SLIP (admin view) -->
+        <div id="sec-slip" class="sec">
+          <div class="page-title">Salary slip</div>
+          <div class="card">
+            <div class="g3" style="margin-bottom:12px">
+              <div class="field"><label>Employee</label><select id="slip-emp"><option value="">Select</option></select></div>
+              <div class="field"><label>Month</label><select id="slip-mon"></select></div>
+              <div class="field"><label>Year</label><input id="slip-yr" type="number" value="2026"></div>
+            </div>
+            <div class="fl">
+              <button class="btn btn-p" onclick="viewSlip('slip-out')">View slip</button>
+              <button class="btn no-print" onclick="window.print()">Print / Save PDF</button>
+            </div>
+          </div>
+          <div id="slip-out"></div>
+        </div>
+
+        <!-- MANAGERS (owner only) -->
+        <div id="sec-managers" class="sec">
+          <div class="page-title">Manager accounts</div>
+          <div class="info-box">Managers can view all staff, edit punches, and add advances/deductions — but cannot add employees or finalize salary. Only you (owner) can create or remove manager accounts.</div>
+          <div class="card">
+            <div class="card-title">Add manager</div>
+            <div class="g3">
+              <div class="field"><label>Full name</label><input id="mgr-name" placeholder="Ravi Kumar"></div>
+              <div class="field"><label>Email</label><input id="mgr-email" type="email" placeholder="ravi@gossipbakery.com"></div>
+              <div class="field"><label>Password</label><input id="mgr-pass" type="password" placeholder="min 8 characters"></div>
+            </div>
+            <button class="btn btn-p" onclick="addManager()">Create manager account</button>
+            <div id="mgr-err" class="err-msg"></div>
+          </div>
+          <div id="mgr-list"></div>
+        </div>
+
+      </div><!-- end admin-sections -->
+
+      <!-- ── STAFF SECTIONS ── -->
+      <div id="staff-sections" style="display:none">
+
+        <!-- MY SLIP -->
+        <div id="sec-myslip" class="sec on">
+          <div class="page-title">My salary slip</div>
+          <div class="card">
+            <div class="g2" style="margin-bottom:12px">
+              <div class="field"><label>Month</label><select id="myslip-mon"></select></div>
+              <div class="field"><label>Year</label><input id="myslip-yr" type="number" value="2026"></div>
+            </div>
+            <div class="fl">
+              <button class="btn btn-p" onclick="viewMySlip()">View my slip</button>
+              <button class="btn no-print" onclick="window.print()">Print</button>
+            </div>
+          </div>
+          <div id="myslip-out"></div>
+        </div>
+
+        <!-- MY ATTENDANCE -->
+        <div id="sec-myatt" class="sec">
+          <div class="fl" style="margin-bottom:16px;gap:12px;flex-wrap:wrap">
+            <div class="page-title" style="margin:0">My attendance</div>
+            <div class="month-nav">
+              <button class="mnb" onclick="chMyM(-1)">‹</button>
+              <div class="mnl" id="myatt-ml"></div>
+              <button class="mnb" onclick="chMyM(1)">›</button>
+            </div>
+          </div>
+          <div id="myatt-wrap"></div>
+        </div>
+
+      </div><!-- end staff-sections -->
+
+      <!-- ── STAFF KIOSK (shared, shown in both modes) ── -->
+      <div id="sec-punch-kiosk" class="sec">
+        <!-- TILES -->
+        <div id="kiosk-tiles">
+          <div style="font-size:16px;font-weight:600;margin-bottom:4px">Who are you?</div>
+          <div style="font-size:13px;color:var(--c2);margin-bottom:16px">Tap your name to clock in or out</div>
+          <div id="emp-tiles"></div>
+        </div>
+        <!-- PIN -->
+        <div id="kiosk-pin" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px">← Back</button>
+          <div style="max-width:320px;background:#fff;border:0.5px solid var(--bd);border-radius:var(--r3)">
+            <div class="pin-wrap">
+              <div class="av" id="kp-av" style="width:52px;height:52px;font-size:19px;background:var(--abg);color:#633806;margin-bottom:6px"></div>
+              <div id="kp-nm" style="font-size:16px;font-weight:600;margin-bottom:2px"></div>
+              <div id="kp-rl" style="font-size:12px;color:var(--c2);margin-bottom:12px"></div>
+              <div id="kp-clk" style="font-size:19px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:4px"></div>
+              <div style="font-size:12px;color:var(--c2);margin-bottom:8px">Enter your 4-digit PIN</div>
+              <div class="pin-dots"><div class="pdot" id="dot0"></div><div class="pdot" id="dot1"></div><div class="pdot" id="dot2"></div><div class="pdot" id="dot3"></div></div>
+              <div id="pin-err" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:4px"></div>
+              <div class="pkgrid">
+                <button class="pk" onclick="pk('1')">1</button><button class="pk" onclick="pk('2')">2</button><button class="pk" onclick="pk('3')">3</button>
+                <button class="pk" onclick="pk('4')">4</button><button class="pk" onclick="pk('5')">5</button><button class="pk" onclick="pk('6')">6</button>
+                <button class="pk" onclick="pk('7')">7</button><button class="pk" onclick="pk('8')">8</button><button class="pk" onclick="pk('9')">9</button>
+                <button class="pk" onclick="pk('C')" style="font-size:12px;font-family:'DM Sans',sans-serif">Clear</button>
+                <button class="pk" onclick="pk('0')">0</button>
+                <button class="pk" onclick="pk('X')" style="font-size:17px">⌫</button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div><!-- end staff-area -->
+        <!-- PUNCH -->
+        <div id="kiosk-punch" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px">← Back</button>
+          <div style="max-width:360px">
+            <div class="card">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                <div class="av" id="kpu-av" style="width:44px;height:44px;font-size:16px;background:var(--abg);color:#633806"></div>
+                <div>
+                  <div id="kpu-nm" style="font-size:15px;font-weight:600"></div>
+                  <div id="kpu-clk" style="font-size:12px;color:var(--c2);font-family:'DM Mono',monospace"></div>
+                </div>
+              </div>
+              <div style="margin-bottom:12px">
+                <video id="sv" class="selfie-vid" autoplay playsinline muted></video>
+                <canvas id="sc" style="display:none"></canvas>
+                <img id="si" style="display:none;width:100%;border-radius:var(--r2);margin-top:6px;border:0.5px solid var(--bd)">
+                <div class="fl" style="margin-top:8px">
+                  <button class="btn btn-ghost btn-sm" style="flex:1" onclick="startCam()">Camera</button>
+                  <button class="btn btn-ghost btn-sm" style="flex:1" onclick="capSelfie()">Capture</button>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                <button onclick="doPunch('in')" style="height:52px;font-size:15px;font-weight:600;border-radius:var(--r2);border:none;background:var(--gbg);color:var(--green);cursor:pointer;font-family:inherit">Clock IN</button>
+                <button onclick="doPunch('out')" style="height:52px;font-size:15px;font-weight:600;border-radius:var(--r2);border:none;background:var(--rbg);color:var(--red);cursor:pointer;font-family:inherit">Clock OUT</button>
+              </div>
+              <div id="pmsg" style="text-align:center;font-size:13px;font-weight:600;min-height:20px"></div>
+              <div id="tdlog" style="margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+      </div><!-- end kiosk -->
 
+    </div><!-- end content -->
+  </div><!-- end body -->
+
+  <!-- Bottom nav -->
+  <div class="btmnav" id="btmnav">
+    <div id="admin-bnav" style="display:none;flex:1;display:none">
+      <div style="display:flex;width:100%">
+        <button class="bnav on" onclick="gp('team')"><div class="bnav-i">👤</div><div class="bnav-l">Team</div></button>
+        <button class="bnav" onclick="gp('att')"><div class="bnav-i">📅</div><div class="bnav-l">Attend.</div></button>
+        <button class="bnav" onclick="gp('punches')"><div class="bnav-i">🕐</div><div class="bnav-l">Punches</div></button>
+        <button class="bnav" onclick="gp('advances')"><div class="bnav-i">💰</div><div class="bnav-l">Advances</div></button>
+        <button class="bnav" onclick="gp('salary')"><div class="bnav-i">📊</div><div class="bnav-l">Salary</div></button>
+        <button class="bnav" onclick="gp('slip')"><div class="bnav-i">🧾</div><div class="bnav-l">Slip</div></button>
+      </div>
+    </div>
+    <div id="staff-bnav" style="display:none;flex:1">
+      <div style="display:flex;width:100%">
+        <button class="bnav on" onclick="gs('myslip')"><div class="bnav-i">🧾</div><div class="bnav-l">My slip</div></button>
+        <button class="bnav" onclick="gs('myatt')"><div class="bnav-i">📅</div><div class="bnav-l">My attend.</div></button>
+        <button class="bnav" onclick="gs('punch-kiosk')"><div class="bnav-i">👋</div><div class="bnav-l">Punch</div></button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end screen-app -->
+
+<!-- User menu modal -->
+<div class="modal-bg" id="user-modal">
+  <div class="modal" style="max-width:280px">
+    <div class="modal-title">
+      <span id="um-name">Account</span>
+      <button class="modal-close" onclick="closeModal('user-modal')">×</button>
+    </div>
+    <div id="um-role" style="font-size:12px;color:var(--c2);margin-bottom:16px"></div>
+    <button class="btn btn-r btn-full" onclick="doLogout()">Sign out</button>
   </div>
 </div>
 
-<!-- BOTTOM NAV (mobile) -->
-<div class="btmnav" id="btmnav">
-  <button class="bnav on" onclick="gp('team')"><div class="bnav-i">👤</div><div class="bnav-l">Team</div></button>
-  <button class="bnav" onclick="gp('att')"><div class="bnav-i">📅</div><div class="bnav-l">Attend.</div></button>
-  <button class="bnav" onclick="gp('punches')"><div class="bnav-i">🕐</div><div class="bnav-l">Punches</div></button>
-  <button class="bnav" onclick="gp('advances')"><div class="bnav-i">💰</div><div class="bnav-l">Advances</div></button>
-  <button class="bnav" onclick="gp('salary')"><div class="bnav-i">📊</div><div class="bnav-l">Salary</div></button>
-  <button class="bnav" onclick="gp('slip')"><div class="bnav-i">🧾</div><div class="bnav-l">Slip</div></button>
-</div>
-
-</div><!-- shell -->
-
 <script>
-// ── Supabase init ─────────────────────────────────────────────────────────────
-const SUPA_URL = 'https://vrreyalepixupcwhtyrk.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZycmV5YWxlcGl4dXBjd2h0eXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1ODI0OTAsImV4cCI6MjA5MTE1ODQ5MH0.09fL0S_Tp9eTG5Q5tkB5dNtscGW9njbn1dlLIB_JwPU';
-const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+// ════════════════════════════════════════════════════════════
+// SUPABASE
+// ════════════════════════════════════════════════════════════
+const SUPA_URL='https://vrreyalepixupcwhtyrk.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZycmV5YWxlcGl4dXBjd2h0eXJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1ODI0OTAsImV4cCI6MjA5MTE1ODQ5MH0.09fL0S_Tp9eTG5Q5tkB5dNtscGW9njbn1dlLIB_JwPU';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const MNS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const DOW = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-const AVBG = ['#faeeda','#eaf3de','#e6f1fb','#eeedfe','#faece7','#fbeaf0'];
-const AVTC = ['#633806','#27500a','#0c447c','#26215c','#4a1b0c','#72243e'];
-const ATT_CYCLE = ['','P','A','H','L','LB'];
-const STATUS_CFG = {
-  P:{bg:'#eaf3de',tc:'#3b6d11'}, A:{bg:'#fcebeb',tc:'#a32d2d'},
-  H:{bg:'#faeeda',tc:'#854f0b'}, L:{bg:'#e6f1fb',tc:'#185fa5'},
-  LB:{bg:'#eeedfe',tc:'#3c3489'}, '':{bg:'var(--bg2)',tc:'var(--c3)'}
-};
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW=['Su','Mo','Tu','We','Th','Fr','Sa'];
+const AVBG=['#faeeda','#eaf3de','#e6f1fb','#eeedfe','#faece7','#fbeaf0'];
+const AVTC=['#633806','#27500a','#0c447c','#26215c','#4a1b0c','#72243e'];
+const ATT_CYC=['','P','A','H','L','LB'];
+const SCFG={P:{bg:'#eaf3de',tc:'#2d6a0f'},A:{bg:'#fcebeb',tc:'#a32d2d'},H:{bg:'#faeeda',tc:'#7a4500'},L:{bg:'#e6f1fb',tc:'#185fa5'},LB:{bg:'#eeedfe',tc:'#3c3489'},'':{bg:'var(--bg2)',tc:'var(--c3)'}};
 
-const pad = n => String(n).padStart(2,'0');
-const getDIM = (y,m) => new Date(y,m,0).getDate();
-const toMin = t => { const[h,m]=t.split(':').map(Number); return h*60+m; };
-const initials = n => n.trim().split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
-const fmtINR = n => '₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0});
-const todayStr = () => { const n=new Date(); return `${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`; };
+const pad=n=>String(n).padStart(2,'0');
+const getDIM=(y,m)=>new Date(y,m,0).getDate();
+const toMin=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
+const initials=n=>n.trim().split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
+const fmtINR=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+const todayStr=()=>{const n=new Date();return`${n.getFullYear()}-${pad(n.getMonth()+1)}-${pad(n.getDate())}`;};
+const fmtDate=d=>d instanceof Date?`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`:String(d).slice(0,10);
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let employees=[], allPunches=[], allOverrides=[], allAdvances=[];
-let aY=new Date().getFullYear(), aM=new Date().getMonth()+1;
-let sY=new Date().getFullYear(), sM=new Date().getMonth()+1;
-let selEmp=null, pinVal='', camStream=null;
-let salData=null;
+let employees=[], currentUser=null, currentProfile=null;
+let aY=new Date().getFullYear(),aM=new Date().getMonth()+1;
+let sY=new Date().getFullYear(),sM=new Date().getMonth()+1;
+let myY=new Date().getFullYear(),myM=new Date().getMonth()+1;
+let selEmp=null,pinVal='',camStream=null,salData=null;
+let staffUser=null; // logged-in staff employee
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
-window.onload = async () => {
+// ════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════
+window.onload=async()=>{
+  await sb.auth.signOut();  
   const n=new Date();
-  document.getElementById('top-date').textContent = n.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-  document.getElementById('p-date').value = todayStr();
-  document.getElementById('p-time').value = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
-  document.getElementById('adv-date').value = todayStr();
-  initSlipMonths();
-  setInterval(tickClock,1000); tickClock();
+  document.getElementById('top-date').textContent=n.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+  initMonthSelects();
+  setInterval(tickClock,1000);tickClock();
+
+  // Check if already logged in (Supabase persists session)
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    await loadProfile(session.user);
+    // Only proceed if we have a valid profile in user_profiles table
+    if(currentProfile){
+      showApp();
+    } else {
+      await sb.auth.signOut();
+      await loadEmployeesForAuth();
+      showAuth();
+    }
+  } else {
+    await loadEmployeesForAuth();
+    showAuth();
+  }
+};
+
+async function loadProfile(user){
+  currentUser=user;
+  const{data}=await sb.from('user_profiles').select('*').eq('id',user.id).single();
+  currentProfile=data;
+}
+
+async function loadEmployeesForAuth(){
+  const{data}=await sb.from('employees').select('id,name,role,shift_name').eq('is_active',true).order('name');
+  employees=data||[];
+  const s=document.getElementById('staff-sel');
+  s.innerHTML='<option value="">Select your name…</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════════
+function showAuth(){document.getElementById('screen-auth').style.display='flex';document.getElementById('screen-app').style.display='none';}
+function showApp(){document.getElementById('screen-auth').style.display='none';document.getElementById('screen-app').style.display='flex';setupForRole();}
+
+function authTab(t){
+  document.querySelectorAll('.atab').forEach((b,i)=>b.classList.toggle('on',['admin','staff'][i]===t));
+  document.getElementById('auth-admin').style.display=t==='admin'?'block':'none';
+  document.getElementById('auth-staff').style.display=t==='staff'?'block':'none';
+}
+
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('login-err');
+  if(!email||!pass){err.textContent='Enter email and password';return;}
+  btn.disabled=true;btn.textContent='Signing in…';err.textContent='';
+  const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error){err.textContent=error.message;btn.disabled=false;btn.textContent='Sign in';return;}
+  await loadProfile(data.user);
   await loadAll();
-};
-
-const loadAll = async () => {
-  const [empR] = await Promise.all([sb.from('employees').select('*').eq('is_active',true).order('name')]);
-  employees = empR.data || [];
-  renderEmpList(); populateSels(); renderTiles();
-};
-
-// ── Clock ─────────────────────────────────────────────────────────────────────
-function tickClock(){
-  const n=new Date(), t=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
-  const el1=document.getElementById('sf-clk'); if(el1)el1.textContent=t;
-  const el2=document.getElementById('sp-clk'); if(el2)el2.textContent=t+' · '+n.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});
+  showApp();
 }
 
-// ── Mode / Nav ────────────────────────────────────────────────────────────────
-function setMode(m){
-  document.querySelectorAll('.mpb').forEach((b,i)=>b.classList.toggle('on',['admin','staff'][i]===m));
-  document.getElementById('admin-area').style.display = m==='admin'?'block':'none';
-  document.getElementById('staff-area').style.display = m==='staff'?'block':'none';
-  document.getElementById('btmnav').style.display = m==='admin'?'flex':'none';
-  document.getElementById('admin-snav').style.display = m==='admin'?'block':'none';
-  document.getElementById('staff-snav').style.display = m==='staff'?'block':'none';
-  if(m==='staff') renderTiles();
+function goStaffPin(){
+  const id=document.getElementById('staff-sel').value;
+  if(!id){alert('Select your name first');return;}
+  staffUser=employees.find(e=>e.id===id);
+  if(!staffUser)return;
+  // Show app in staff mode without Supabase auth
+  currentUser=null;currentProfile=null;
+  showApp();
+  // Go directly to staff slip page
+  gs('myslip');
 }
-const PAGES=['team','att','punches','advances','salary','slip'];
+
+function goStaffPunch(){
+  currentUser=null;currentProfile=null;staffUser=null;
+  showApp();
+  showKiosk();
+}
+
+async function doLogout(){
+  if(currentUser) await sb.auth.signOut();
+  currentUser=null;currentProfile=null;staffUser=null;
+  closeModal('user-modal');
+  await loadEmployeesForAuth();
+  showAuth();
+}
+
+// ════════════════════════════════════════════════════════════
+// ROLE SETUP
+// ════════════════════════════════════════════════════════════
+function setupForRole(){
+  const role=currentProfile?.role||'staff';
+  const isOwner=role==='owner';
+  const isManager=role==='manager';
+  const isAdmin=isOwner||isManager;
+  const isStaff=!currentUser&&(staffUser!==null);
+  const isPunchOnly=!currentUser&&!staffUser;
+
+  // User chip
+  document.getElementById('user-name').textContent=currentProfile?.name||staffUser?.name||'Staff';
+  const dot=document.getElementById('user-dot');
+  dot.className='role-dot '+(isOwner?'rd-owner':isManager?'rd-manager':'rd-staff');
+
+  // Show/hide sections
+  document.getElementById('admin-sections').style.display=isAdmin?'block':'none';
+  document.getElementById('staff-sections').style.display=(isStaff||isPunchOnly)?'block':'none';
+
+  document.getElementById('admin-nav').style.display=isAdmin?'block':'none';
+  document.getElementById('staff-nav').style.display=isStaff?'block':'none';
+  document.getElementById('admin-bnav').style.display=isAdmin?'block':'none';
+  document.getElementById('staff-bnav').style.display=isStaff?'block':'none';
+
+  // Managers menu only for owner
+  const snMgr=document.getElementById('sn-managers');
+  if(snMgr)snMgr.style.display=isOwner?'flex':'none';
+
+  // Finalize salary — owner only
+  const finBtn=document.getElementById('finalize-btn');
+  if(finBtn)finBtn.style.display=isOwner?'inline-flex':'none';
+
+  // Team add card — owner only
+  const addCard=document.getElementById('add-emp-card');
+  if(addCard)addCard.style.display=isOwner?'block':'none';
+
+  if(isAdmin){gp('team');}
+  else if(isStaff){gs('myslip');}
+  else{showKiosk();}
+
+  if(isAdmin) loadAll();
+}
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+const ADMIN_PAGES=['team','att','punches','advances','salary','slip','managers','punch-kiosk'];
 function gp(id){
-  PAGES.forEach(p=>{ document.getElementById('sec-'+p).classList.toggle('on',p===id); });
-  document.querySelectorAll('#admin-snav .snav').forEach((b,i)=>b.classList.toggle('on',PAGES[i]===id));
-  document.querySelectorAll('#btmnav .bnav').forEach((b,i)=>b.classList.toggle('on',PAGES[i]===id));
-  if(id==='att') renderAtt();
-  if(id==='salary') calcSalary();
-  if(id==='punches') loadPunches();
-  if(id==='advances') loadAdvances();
+  ADMIN_PAGES.forEach(p=>{
+    const el=document.getElementById('sec-'+p);
+    if(el)el.classList.toggle('on',p===id);
+  });
+  document.querySelectorAll('#admin-nav .snav').forEach(b=>{
+    const pg=b.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if(pg)b.classList.toggle('on',pg===id);
+  });
+  document.querySelectorAll('#admin-bnav .bnav').forEach((b,i)=>{
+    const pages=['team','att','punches','advances','salary','slip'];
+    b.classList.toggle('on',pages[i]===id);
+  });
+  if(id==='att')renderAtt();
+  if(id==='salary')calcSalary();
+  if(id==='punches')loadPunches();
+  if(id==='advances')loadAdvances();
+  if(id==='managers')loadManagers();
+  if(id==='punch-kiosk')showKiosk();
   populateSels();
 }
 
-// ── Employees ─────────────────────────────────────────────────────────────────
+const STAFF_PAGES=['myslip','myatt','punch-kiosk'];
+function gs(id){
+  STAFF_PAGES.forEach(p=>{
+    const el=document.getElementById('sec-'+p);
+    if(el)el.classList.toggle('on',p===id);
+  });
+  document.querySelectorAll('#staff-nav .snav').forEach(b=>{
+    const pg=b.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if(pg)b.classList.toggle('on',pg===id);
+  });
+  document.querySelectorAll('#staff-bnav .bnav').forEach((b,i)=>{
+    const pages=['myslip','myatt','punch-kiosk'];
+    b.classList.toggle('on',pages[i]===id);
+  });
+  if(id==='myatt')renderMyAtt();
+  if(id==='punch-kiosk')showKiosk();
+}
+
+function showKiosk(){
+  const el=document.getElementById('sec-punch-kiosk');
+  if(el)el.classList.add('on');
+  renderTiles();
+}
+
+// ════════════════════════════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════════════════════════════
+function tickClock(){
+  const n=new Date(),t=n.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+  ['kp-clk','kpu-clk'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t;});
+}
+
+function initMonthSelects(){
+  ['slip-mon','myslip-mon'].forEach(id=>{
+    const s=document.getElementById(id);if(!s)return;
+    const cur=new Date().getMonth();
+    s.innerHTML=MONTHS.map((m,i)=>`<option value="${i+1}" ${i===cur?'selected':''}>${m}</option>`).join('');
+  });
+}
+
+function showUserMenu(){
+  document.getElementById('um-name').textContent=currentProfile?.name||staffUser?.name||'—';
+  document.getElementById('um-role').textContent=currentProfile?`Role: ${currentProfile.role}`:(staffUser?'Staff member':'Guest');
+  document.getElementById('user-modal').classList.add('on');
+}
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+
+// ════════════════════════════════════════════════════════════
+// LOAD ALL
+// ════════════════════════════════════════════════════════════
+async function loadAll(){
+  const{data}=await sb.from('employees').select('*').eq('is_active',true).order('name');
+  employees=data||[];
+  renderEmpList();populateSels();renderTiles();
+}
+
+// ════════════════════════════════════════════════════════════
+// EMPLOYEES
+// ════════════════════════════════════════════════════════════
 async function addEmployee(){
   const name=document.getElementById('e-name').value.trim();
   const sal=parseFloat(document.getElementById('e-sal').value);
-  const dh=parseFloat(document.getElementById('e-dh').value)||10;
   const pin=String(document.getElementById('e-pin').value).trim();
   const err=document.getElementById('e-err');
-  if(!name){err.textContent='Name is required';return;}
-  if(!sal){err.textContent='Salary is required';return;}
-  if(pin.length!==4||isNaN(pin)){err.textContent='PIN must be exactly 4 digits';return;}
+  if(!name){err.textContent='Name required';return;}
+  if(!sal){err.textContent='Salary required';return;}
+  if(pin.length!==4||isNaN(pin)){err.textContent='PIN must be 4 digits';return;}
   err.textContent='';
-  const {error} = await sb.from('employees').insert({
-    name, role:document.getElementById('e-role').value.trim()||null,
+  const{error}=await sb.from('employees').insert({
+    name,role:document.getElementById('e-role').value.trim()||null,
     employee_code:document.getElementById('e-code').value.trim()||null,
     phone:document.getElementById('e-phone').value.trim()||null,
     shift_name:document.getElementById('e-shift').value.trim()||null,
     shift_start:document.getElementById('e-sin').value||'09:00',
     shift_end:document.getElementById('e-sout').value||'19:00',
-    duty_hours:dh, monthly_salary:sal, pin,
+    duty_hours:parseFloat(document.getElementById('e-dh').value)||10,
+    monthly_salary:sal,pin,
     join_date:document.getElementById('e-join').value||null
   });
   if(error){err.textContent=error.message;return;}
-  clearEmpForm(); await loadAll();
+  clearEmpForm();await loadAll();
 }
 function clearEmpForm(){
   ['e-name','e-role','e-code','e-phone','e-shift','e-sal','e-pin','e-join'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('e-sin').value='09:00'; document.getElementById('e-sout').value='19:00'; document.getElementById('e-dh').value='10';
+  document.getElementById('e-sin').value='09:00';document.getElementById('e-sout').value='19:00';document.getElementById('e-dh').value='10';
 }
 async function removeEmp(id,name){
-  if(!confirm(`Remove ${name}? Their punch history will be kept.`)) return;
+  if(!confirm(`Remove ${name}?`))return;
   await sb.from('employees').update({is_active:false}).eq('id',id);
   await loadAll();
 }
 function renderEmpList(){
-  const d=document.getElementById('emp-list');
-  if(!employees.length){d.innerHTML='<div class="empty">No employees yet. Add your first team member above.</div>';return;}
-  const now=new Date();
-  const dim=getDIM(now.getFullYear(),now.getMonth()+1);
+  const d=document.getElementById('emp-list');if(!d)return;
+  if(!employees.length){d.innerHTML='<div class="empty">No employees yet.</div>';return;}
+  const now=new Date(),dim=getDIM(now.getFullYear(),now.getMonth()+1);
+  const isOwner=currentProfile?.role==='owner';
   d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
-    <thead><tr><th>Employee</th><th>Shift</th><th>Duty hrs</th><th>Salary</th><th>Hourly rate</th><th></th></tr></thead>
+    <thead><tr><th>Employee</th><th>Shift</th><th>Duty hrs</th><th>Salary</th><th>Hourly rate</th>${isOwner?'<th></th>':''}</tr></thead>
     <tbody>${employees.map((e,i)=>{
       const hr=(e.monthly_salary/(dim*e.duty_hours)).toFixed(2);
-      return `<tr>
-        <td><div style="display:flex;align-items:center;gap:9px">
-          <div class="av" style="width:34px;height:34px;font-size:12px;background:${AVBG[i%6]};color:${AVTC[i%6]}">${initials(e.name)}</div>
-          <div><div style="font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--c2)">${e.role||''}${e.employee_code?' · '+e.employee_code:''}</div></div>
-        </div></td>
-        <td>${e.shift_name||'—'}<br><span style="font-size:11px;color:var(--c2)">${e.shift_start?.slice(0,5)||''}–${e.shift_end?.slice(0,5)||''}</span></td>
-        <td>${e.duty_hours}h</td>
-        <td>${fmtINR(e.monthly_salary)}</td>
-        <td>₹${hr}/hr</td>
-        <td><button class="btn btn-r btn-sm" onclick="removeEmp('${e.id}','${e.name}')">Remove</button></td>
+      return`<tr><td><div style="display:flex;align-items:center;gap:9px">
+        <div class="av" style="width:34px;height:34px;font-size:12px;background:${AVBG[i%6]};color:${AVTC[i%6]}">${initials(e.name)}</div>
+        <div><div style="font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--c2)">${e.role||''}${e.employee_code?' · '+e.employee_code:''}</div></div>
+      </div></td>
+      <td>${e.shift_name||'—'}<br><span style="font-size:11px;color:var(--c2)">${e.shift_start?.slice(0,5)||''}–${e.shift_end?.slice(0,5)||''}</span></td>
+      <td>${e.duty_hours}h</td><td>${fmtINR(e.monthly_salary)}</td><td>₹${hr}/hr</td>
+      ${isOwner?`<td><button class="btn btn-r btn-sm" onclick="removeEmp('${e.id}','${e.name}')">Remove</button></td>`:''}
       </tr>`;
     }).join('')}</tbody>
   </table></div></div>`;
 }
 function populateSels(){
   ['p-emp','adv-emp','slip-emp'].forEach(id=>{
-    const s=document.getElementById(id); if(!s)return;
-    const v=s.value; s.innerHTML='<option value="">Select</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+    const s=document.getElementById(id);if(!s)return;
+    const v=s.value;s.innerHTML='<option value="">Select</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
     if(v)s.value=v;
   });
 }
 
-// ── Punches ───────────────────────────────────────────────────────────────────
-async function loadPunches(){
-  const monthStr=`${aY}-${pad(aM)}`;
-  const {data} = await sb.from('punches').select('*,employees(name)').gte('punch_date',monthStr+'-01').lte('punch_date',monthStr+'-31').order('punch_date',{ascending:false}).order('punch_time',{ascending:false});
-  allPunches = data||[];
-  renderPunchList();
-}
-function renderPunchList(){
-  const d=document.getElementById('punch-list');
-  if(!allPunches.length){d.innerHTML='<div class="empty">No punch records this month.</div>';return;}
-  d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
-    <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Time</th><th>Source</th><th></th></tr></thead>
-    <tbody>${allPunches.map(p=>`<tr>
-      <td style="font-weight:600">${p.employees?.name||'—'}</td>
-      <td>${p.punch_date}</td>
-      <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
-      <td>${p.punch_time?.slice(0,5)}</td>
-      <td><span class="badge bgr">${p.source}</span>${p.selfie_url?` <a href="${p.selfie_url}" target="_blank" style="font-size:11px;color:var(--blue)">selfie</a>`:''}</td>
-      <td><button class="btn btn-r btn-sm" onclick="removePunch('${p.id}')">×</button></td>
-    </tr>`).join('')}</tbody>
-  </table></div></div>`;
-}
-async function adminPunch(type){
-  const empId=document.getElementById('p-emp').value;
-  const date=document.getElementById('p-date').value;
-  const time=document.getElementById('p-time').value;
-  if(!empId||!date||!time){alert('Fill all fields');return;}
-  await sb.from('punches').insert({employee_id:empId,punch_date:date,punch_time:time,punch_type:type,source:'admin'});
-  await loadPunches();
-}
-async function removePunch(id){
-  if(!confirm('Delete this punch?'))return;
-  await sb.from('punches').delete().eq('id',id);
-  await loadPunches();
+// ════════════════════════════════════════════════════════════
+// AUTO PUNCH-OUT LOGIC
+// If employee has IN but no OUT, auto-use shift_end as OUT
+// Returns {hours, autoOut: bool}
+// ════════════════════════════════════════════════════════════
+function calcDayResult(punches,shiftEnd){
+  const sorted=[...punches].sort((a,b)=>a.punch_time.localeCompare(b.punch_time));
+  let total=0,lastIn=null,autoOut=false;
+  for(const p of sorted){
+    const t=p.punch_time.slice(0,5);
+    if(p.punch_type==='in')lastIn=toMin(t);
+    else if(p.punch_type==='out'&&lastIn!==null){total+=toMin(t)-lastIn;lastIn=null;}
+  }
+  // Unclosed IN — auto punch out at shift end
+  if(lastIn!==null&&shiftEnd){
+    const endMin=toMin(shiftEnd.slice(0,5));
+    if(endMin>lastIn){total+=endMin-lastIn;autoOut=true;}
+  }
+  return{hours:parseFloat((total/60).toFixed(2)),autoOut};
 }
 
-// ── Advances ──────────────────────────────────────────────────────────────────
-async function loadAdvances(){
-  const monthStr=`${aY}-${pad(aM)}`;
-  const {data}=await sb.from('advances').select('*,employees(name)').gte('record_date',monthStr+'-01').lte('record_date',monthStr+'-31').order('record_date',{ascending:false});
-  allAdvances=data||[];
-  renderAdvList();
-}
-function renderAdvList(){
-  const d=document.getElementById('adv-list');
-  if(!allAdvances.length){d.innerHTML='<div class="empty">No advance/deduction records this month.</div>';return;}
-  d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
-    <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th></th></tr></thead>
-    <tbody>${allAdvances.map(a=>`<tr>
-      <td style="font-weight:600">${a.employees?.name||'—'}</td>
-      <td>${a.record_date}</td>
-      <td><span class="badge ${a.record_type==='advance'?'ba':'br'}">${a.record_type}</span></td>
-      <td style="font-weight:600">${fmtINR(a.amount)}</td>
-      <td style="color:var(--c2)">${a.note||'—'}</td>
-      <td><button class="btn btn-r btn-sm" onclick="removeAdv('${a.id}')">×</button></td>
-    </tr>`).join('')}</tbody>
-  </table></div></div>`;
-}
-async function saveAdvance(){
-  const empId=document.getElementById('adv-emp').value;
-  const date=document.getElementById('adv-date').value;
-  const type=document.getElementById('adv-type').value;
-  const amt=parseFloat(document.getElementById('adv-amt').value);
-  const note=document.getElementById('adv-note').value.trim();
-  if(!empId||!date||!amt){alert('Fill employee, date and amount');return;}
-  await sb.from('advances').insert({employee_id:empId,record_date:date,record_type:type,amount:amt,note:note||null});
-  document.getElementById('adv-amt').value=''; document.getElementById('adv-note').value='';
-  await loadAdvances();
-}
-async function removeAdv(id){
-  if(!confirm('Delete this record?'))return;
-  await sb.from('advances').delete().eq('id',id);
-  await loadAdvances();
-}
-
-// ── Attendance ────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// ATTENDANCE
+// ════════════════════════════════════════════════════════════
 async function renderAtt(){
-  document.getElementById('att-ml').textContent=`${MN[aM-1]} ${aY}`;
-  const monthStr=`${aY}-${pad(aM)}`;
-  const [pRes,oRes]=await Promise.all([
-    sb.from('punches').select('employee_id,punch_date,punch_time,punch_type').gte('punch_date',monthStr+'-01').lte('punch_date',monthStr+'-31'),
-    sb.from('attendance_overrides').select('employee_id,override_date,status').gte('override_date',monthStr+'-01').lte('override_date',monthStr+'-31')
+  document.getElementById('att-ml').textContent=`${MONTHS[aM-1]} ${aY}`;
+  const ms=`${aY}-${pad(aM)}`;
+  const[pR,oR]=await Promise.all([
+    sb.from('punches').select('employee_id,punch_date,punch_time,punch_type').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
+    sb.from('attendance_overrides').select('employee_id,override_date,status').gte('override_date',ms+'-01').lte('override_date',ms+'-31')
   ]);
-  const punches=pRes.data||[], overrides=oRes.data||[];
-  if(!employees.length){document.getElementById('att-wrap').innerHTML='<div class="empty">No employees yet.</div>';return;}
+  const punches=pR.data||[],overrides=oR.data||[];
+  if(!employees.length){document.getElementById('att-wrap').innerHTML='<div class="empty">No employees.</div>';return;}
   const dim=getDIM(aY,aM);
   document.getElementById('att-wrap').innerHTML=employees.map((emp,ri)=>{
     let P=0,H=0,A=0,L=0,LB=0,chips='';
     for(let d=1;d<=dim;d++){
       const ds=`${aY}-${pad(aM)}-${pad(d)}`;
       const ovr=overrides.find(o=>o.employee_id===emp.id&&o.override_date?.slice(0,10)===ds);
-      const dayP=punches.filter(p=>p.employee_id===emp.id&&p.punch_date?.slice(0,10)===ds);
-      const hrs=calcHrs(dayP);
+      const dp=punches.filter(p=>p.employee_id===emp.id&&p.punch_date?.slice(0,10)===ds);
+      const{hours,autoOut}=calcDayResult(dp,emp.shift_end);
       let st=ovr?ovr.status:'';
-      if(!st&&hrs>0){ st=hrs>=emp.duty_hours*0.8?'P':hrs>=emp.duty_hours*0.4?'H':'P'; }
+      if(!st&&hours>0){st=hours>=emp.duty_hours*0.8?'P':hours>=emp.duty_hours*0.4?'H':'P';}
       if(st==='P')P++;else if(st==='H')H++;else if(st==='A')A++;else if(st==='L')L++;else if(st==='LB')LB++;
-      const cfg=STATUS_CFG[st]||STATUS_CFG[''];
+      const cfg=SCFG[st]||SCFG[''];
       const dow=new Date(aY,aM-1,d).getDay();
-      chips+=`<button class="dchip" style="background:${cfg.bg};color:${cfg.tc}" onclick="cycleOvr('${emp.id}','${ds}','${st}',this)" title="${ds} · ${hrs.toFixed(1)}h"><span style="font-size:8px;opacity:0.6">${DOW[dow]}</span><span>${d}</span></button>`;
+      chips+=`<button class="dchip" style="background:${cfg.bg};color:${cfg.tc}" onclick="cycleOvr('${emp.id}','${ds}','${st}',this)" title="${ds}&#10;${hours.toFixed(1)}h${autoOut?' (auto punch-out)':''}">
+        <span style="font-size:8px;opacity:0.55">${DOW[dow]}</span><span>${d}</span>
+        ${autoOut?'<div class="warn-dot"></div>':''}
+      </button>`;
     }
-    const wd=P+LB+H*0.5; const earnedPL=Math.floor(wd/6);
-    return `<div class="att-card">
+    const wd=P+LB+H*0.5;const earnedPL=Math.floor(wd/6);
+    return`<div class="att-card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
         <div class="av" style="width:38px;height:38px;font-size:14px;background:${AVBG[ri%6]};color:${AVTC[ri%6]}">${initials(emp.name)}</div>
         <div style="flex:1"><div style="font-weight:600">${emp.name}</div><div style="font-size:11px;color:var(--c2)">${emp.role||''}</div></div>
@@ -637,83 +936,145 @@ async function renderAtt(){
   }).join('');
 }
 async function cycleOvr(empId,date,cur,btn){
-  const idx=ATT_CYCLE.indexOf(cur); const next=ATT_CYCLE[(idx+1)%ATT_CYCLE.length];
-  if(next){
-    await sb.from('attendance_overrides').upsert({employee_id:empId,override_date:date,status:next},{onConflict:'employee_id,override_date'});
-  } else {
-    await sb.from('attendance_overrides').delete().eq('employee_id',empId).eq('override_date',date);
-  }
-  const cfg=STATUS_CFG[next]||STATUS_CFG[''];
-  btn.style.background=cfg.bg; btn.style.color=cfg.tc;
+  const idx=ATT_CYC.indexOf(cur);const next=ATT_CYC[(idx+1)%ATT_CYC.length];
+  if(next){await sb.from('attendance_overrides').upsert({employee_id:empId,override_date:date,status:next,created_by:currentUser?.id||null},{onConflict:'employee_id,override_date'});}
+  else{await sb.from('attendance_overrides').delete().eq('employee_id',empId).eq('override_date',date);}
+  const cfg=SCFG[next]||SCFG[''];btn.style.background=cfg.bg;btn.style.color=cfg.tc;
   btn.setAttribute('onclick',`cycleOvr('${empId}','${date}','${next}',this)`);
+  btn.querySelector('.warn-dot')?.remove();
 }
 function chM(d){aM+=d;if(aM>12){aM=1;aY++;}if(aM<1){aM=12;aY--;}renderAtt();}
 
-// ── Salary calc ───────────────────────────────────────────────────────────────
-function calcHrs(punches=[]){
-  const sorted=[...punches].sort((a,b)=>a.punch_time.localeCompare(b.punch_time));
-  let tot=0,lastIn=null;
-  for(const p of sorted){
-    if(p.punch_type==='in')lastIn=toMin(p.punch_time.slice(0,5));
-    else if(p.punch_type==='out'&&lastIn!==null){tot+=toMin(p.punch_time.slice(0,5))-lastIn;lastIn=null;}
-  }
-  return parseFloat((tot/60).toFixed(2));
+// ════════════════════════════════════════════════════════════
+// PUNCHES
+// ════════════════════════════════════════════════════════════
+async function loadPunches(){
+  const ms=`${aY}-${pad(aM)}`;
+  const{data}=await sb.from('punches').select('*,employees(name)').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31').order('punch_date',{ascending:false}).order('punch_time',{ascending:false});
+  const punches=data||[];
+  const d=document.getElementById('punch-list');
+  if(!punches.length){d.innerHTML='<div class="empty">No punch records this month.</div>';return;}
+  d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
+    <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Time</th><th>Source</th><th></th></tr></thead>
+    <tbody>${punches.map(p=>`<tr>
+      <td style="font-weight:600">${p.employees?.name||'—'}</td>
+      <td>${p.punch_date?.slice(0,10)}</td>
+      <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
+      <td style="font-family:'DM Mono',monospace">${p.punch_time?.slice(0,5)}</td>
+      <td><span class="badge ${p.source==='admin'||p.source==='manager'?'bb':'bgr'}">${p.source}</span>${p.selfie_url?` <a href="${p.selfie_url}" target="_blank" style="font-size:11px;color:var(--blue)">selfie</a>`:''}</td>
+      <td><button class="btn btn-r btn-sm" onclick="removePunch('${p.id}')">×</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+}
+async function adminPunch(type){
+  const empId=document.getElementById('p-emp').value;
+  const date=document.getElementById('p-date').value;
+  const time=document.getElementById('p-time').value;
+  if(!empId||!date||!time){alert('Fill all fields');return;}
+  const source=currentProfile?.role==='manager'?'manager':'admin';
+  await sb.from('punches').insert({employee_id:empId,punch_date:date,punch_time:time,punch_type:type,source});
+  await loadPunches();
+}
+async function removePunch(id){
+  if(!confirm('Delete this punch record?'))return;
+  await sb.from('punches').delete().eq('id',id);
+  await loadPunches();
 }
 
-async function calcSalary(){
-  document.getElementById('sal-ml').textContent=`${MN[sM-1]} ${sY}`;
-  if(!employees.length){document.getElementById('sal-cards').innerHTML='<div class="empty">No employees.</div>';return;}
-  const monthStr=`${sY}-${pad(sM)}`;
-  const [pRes,oRes,aRes]=await Promise.all([
-    sb.from('punches').select('employee_id,punch_date,punch_time,punch_type').gte('punch_date',monthStr+'-01').lte('punch_date',monthStr+'-31'),
-    sb.from('attendance_overrides').select('employee_id,override_date,status').gte('override_date',monthStr+'-01').lte('override_date',monthStr+'-31'),
-    sb.from('advances').select('employee_id,record_date,record_type,amount,note').gte('record_date',monthStr+'-01').lte('record_date',monthStr+'-31')
-  ]);
-  const punches=pRes.data||[], overrides=oRes.data||[], advances=aRes.data||[];
-  const dim=getDIM(sY,sM);
-  salData=employees.map(emp=>computeSlip(emp,sY,sM,dim,punches,overrides,advances));
-  let totNet=0,totOT=0,totAdv=0;
-  salData.forEach(s=>{totNet+=s.netPay;totOT+=s.overtimePay;totAdv+=s.totalAdvance;});
-  document.getElementById('sal-metrics').innerHTML=`
-    <div class="mc"><div class="mc-l">Total payable</div><div class="mc-v" style="color:var(--amber)">${fmtINR(totNet)}</div></div>
-    <div class="mc"><div class="mc-l">Overtime paid</div><div class="mc-v" style="color:var(--green)">${fmtINR(totOT)}</div></div>
-    <div class="mc"><div class="mc-l">Advances</div><div class="mc-v" style="color:var(--red)">${fmtINR(totAdv)}</div></div>
-    <div class="mc"><div class="mc-l">Employees</div><div class="mc-v">${employees.length}</div></div>`;
-  document.getElementById('sal-cards').innerHTML=salData.map(s=>slipCardHTML(s,false)).join('');
+// ════════════════════════════════════════════════════════════
+// ADVANCES
+// ════════════════════════════════════════════════════════════
+async function loadAdvances(){
+  const ms=`${aY}-${pad(aM)}`;
+  const{data}=await sb.from('advances').select('*,employees(name)').gte('record_date',ms+'-01').lte('record_date',ms+'-31').order('record_date',{ascending:false});
+  const adv=data||[];
+  const d=document.getElementById('adv-list');
+  if(!adv.length){d.innerHTML='<div class="empty">No records this month.</div>';return;}
+  d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
+    <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th></th></tr></thead>
+    <tbody>${adv.map(a=>`<tr>
+      <td style="font-weight:600">${a.employees?.name||'—'}</td>
+      <td>${a.record_date?.slice(0,10)}</td>
+      <td><span class="badge ${a.record_type==='advance'?'ba':'br'}">${a.record_type}</span></td>
+      <td style="font-weight:600">${fmtINR(a.amount)}</td>
+      <td style="color:var(--c2)">${a.note||'—'}</td>
+      <td><button class="btn btn-r btn-sm" onclick="removeAdv('${a.id}')">×</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+}
+async function saveAdvance(){
+  const empId=document.getElementById('adv-emp').value;
+  const date=document.getElementById('adv-date').value;
+  const type=document.getElementById('adv-type').value;
+  const amt=parseFloat(document.getElementById('adv-amt').value);
+  const note=document.getElementById('adv-note').value.trim();
+  if(!empId||!date||!amt){alert('Fill employee, date and amount');return;}
+  await sb.from('advances').insert({employee_id:empId,record_date:date,record_type:type,amount:amt,note:note||null,created_by:currentUser?.id||null});
+  document.getElementById('adv-amt').value='';document.getElementById('adv-note').value='';
+  await loadAdvances();
+}
+async function removeAdv(id){
+  if(!confirm('Delete?'))return;
+  await sb.from('advances').delete().eq('id',id);
+  await loadAdvances();
 }
 
+// ════════════════════════════════════════════════════════════
+// SALARY ENGINE
+// ════════════════════════════════════════════════════════════
 function computeSlip(emp,y,m,dim,punches,overrides,advances){
   const perHr=emp.monthly_salary/(dim*emp.duty_hours);
   let P=0,H=0,A=0,L=0,LB=0,totH=0,otH=0,wd=0;
   for(let d=1;d<=dim;d++){
     const ds=`${y}-${pad(m)}-${pad(d)}`;
     const ovr=overrides.find(o=>o.employee_id===emp.id&&o.override_date?.slice(0,10)===ds);
-    const dayP=punches.filter(p=>p.employee_id===emp.id&&p.punch_date?.slice(0,10)===ds);
-    const hrs=calcHrs(dayP);
+    const dp=punches.filter(p=>p.employee_id===emp.id&&p.punch_date?.slice(0,10)===ds);
+    const{hours}=calcDayResult(dp,emp.shift_end);
     let st=ovr?ovr.status:'';
-    if(!st&&hrs>0){st=hrs>=emp.duty_hours*0.8?'P':hrs>=emp.duty_hours*0.4?'H':'P';}
-    if(st==='P'){P++;totH+=hrs;wd++;if(hrs>emp.duty_hours)otH+=hrs-emp.duty_hours;}
-    else if(st==='H'){H++;totH+=hrs;wd+=0.5;}
-    else if(st==='A')A++;
-    else if(st==='L')L++;
-    else if(st==='LB'){LB++;totH+=hrs;wd++;if(hrs>emp.duty_hours)otH+=hrs-emp.duty_hours;}
+    if(!st&&hours>0){st=hours>=emp.duty_hours*0.8?'P':hours>=emp.duty_hours*0.4?'H':'P';}
+    if(st==='P'){P++;totH+=hours;wd++;if(hours>emp.duty_hours)otH+=hours-emp.duty_hours;}
+    else if(st==='H'){H++;totH+=hours;wd+=0.5;}
+    else if(st==='A')A++;else if(st==='L')L++;
+    else if(st==='LB'){LB++;totH+=hours;wd++;if(hours>emp.duty_hours)otH+=hours-emp.duty_hours;}
     else A++;
   }
-  const earnedPL=Math.floor(wd/6), paidPL=Math.min(L,earnedPL), unpaidL=Math.max(0,L-earnedPL);
-  const empAdv=advances.filter(a=>a.employee_id===emp.id);
-  const totalAdvance=empAdv.filter(a=>a.record_type==='advance').reduce((s,a)=>s+parseFloat(a.amount),0);
-  const totalDed=empAdv.filter(a=>a.record_type==='deduction').reduce((s,a)=>s+parseFloat(a.amount),0);
   const r2=n=>Math.round(n*100)/100;
+  const earnedPL=Math.floor(wd/6),paidPL=Math.min(L,earnedPL),unpaidL=Math.max(0,L-earnedPL);
+  const empAdv=advances.filter(a=>a.employee_id===emp.id);
+  const totAdv=empAdv.filter(a=>a.record_type==='advance').reduce((s,a)=>s+parseFloat(a.amount),0);
+  const totDed=empAdv.filter(a=>a.record_type==='deduction').reduce((s,a)=>s+parseFloat(a.amount),0);
   const basePay=r2(totH*perHr);
   const plPay=r2(paidPL*emp.duty_hours*perHr);
-  const overtimePay=r2(otH*perHr);
+  const otPay=r2(otH*perHr);
   const lbBonus=r2(LB*emp.duty_hours*perHr*0.5);
   const unpaidDed=r2(unpaidL*emp.duty_hours*perHr);
-  const netPay=r2(Math.max(0,basePay+plPay+overtimePay+lbBonus-unpaidDed-totalAdvance-totalDed));
-  return{emp,y,m,dim,perHr:r2(perHr),P,H,A,L,LB,totH:r2(totH),otH:r2(otH),earnedPL,paidPL,unpaidL,wd:r2(wd),basePay,plPay,overtimePay,lbBonus,unpaidDed,totalAdvance:r2(totalAdvance),totalDed:r2(totalDed),netPay,empAdv};
+  const netPay=r2(Math.max(0,basePay+plPay+otPay+lbBonus-unpaidDed-totAdv-totDed));
+  return{emp,y,m,dim,perHr:r2(perHr),P,H,A,L,LB,totH:r2(totH),otH:r2(otH),earnedPL,paidPL,unpaidL,wd:r2(wd),basePay,plPay,otPay,lbBonus,unpaidDed,totAdv:r2(totAdv),totDed:r2(totDed),netPay,empAdv};
 }
 
-function slipCardHTML(s,full=false){
+async function calcSalary(){
+  document.getElementById('sal-ml').textContent=`${MONTHS[sM-1]} ${sY}`;
+  if(!employees.length){document.getElementById('sal-cards').innerHTML='<div class="empty">No employees.</div>';return;}
+  const ms=`${sY}-${pad(sM)}`;
+  const[pR,oR,aR]=await Promise.all([
+    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
+    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-31'),
+    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-31')
+  ]);
+  const dim=getDIM(sY,sM);
+  salData=employees.map(emp=>computeSlip(emp,sY,sM,dim,pR.data||[],oR.data||[],aR.data||[]));
+  let tN=0,tO=0,tA=0;
+  salData.forEach(s=>{tN+=s.netPay;tO+=s.otPay;tA+=s.totAdv;});
+  document.getElementById('sal-metrics').innerHTML=`
+    <div class="mc"><div class="mc-l">Total payable</div><div class="mc-v" style="color:var(--amber)">${fmtINR(tN)}</div></div>
+    <div class="mc"><div class="mc-l">Overtime</div><div class="mc-v" style="color:var(--green)">${fmtINR(tO)}</div></div>
+    <div class="mc"><div class="mc-l">Advances</div><div class="mc-v" style="color:var(--red)">${fmtINR(tA)}</div></div>
+    <div class="mc"><div class="mc-l">Employees</div><div class="mc-v">${employees.length}</div></div>`;
+  document.getElementById('sal-cards').innerHTML=salData.map(s=>salCardHTML(s)).join('');
+}
+function chSM(d){sM+=d;if(sM>12){sM=1;sY++;}if(sM<1){sM=12;sY--;}calcSalary();}
+
+function salCardHTML(s){
   return`<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px;flex-wrap:wrap">
       <div><div style="font-weight:600;font-size:14px">${s.emp.name}</div>
@@ -721,154 +1082,249 @@ function slipCardHTML(s,full=false){
       <span class="badge ba" style="font-size:13px;padding:4px 10px">${fmtINR(s.netPay)}</span>
     </div>
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
-      ${s.P?`<span class="badge bg">P:${s.P}</span>`:''} ${s.A?`<span class="badge br">A:${s.A}</span>`:''} ${s.H?`<span class="badge ba">H:${s.H}</span>`:''}
-      ${s.paidPL?`<span class="badge bb">PL:${s.paidPL}/${s.earnedPL}</span>`:''} ${s.LB?`<span class="badge bp">LB:${s.LB}</span>`:''}
-      ${s.unpaidL?`<span class="badge br">Unpaid:${s.unpaidL}</span>`:''}
-      <span class="badge bgr">${s.totH}h worked${s.otH>0?' · OT:'+s.otH+'h':''}</span>
+      ${s.P?`<span class="badge bg">P:${s.P}</span>`:''}${s.A?`<span class="badge br">A:${s.A}</span>`:''}
+      ${s.H?`<span class="badge ba">H:${s.H}</span>`:''}${s.paidPL?`<span class="badge bb">PL:${s.paidPL}/${s.earnedPL}</span>`:''}
+      ${s.LB?`<span class="badge bp">LB:${s.LB}</span>`:''}${s.unpaidL?`<span class="badge br">Unpaid:${s.unpaidL}</span>`:''}
+      <span class="badge bgr">${s.totH}h${s.otH>0?' · OT:'+s.otH+'h':''}</span>
     </div>
-    <div class="sr"><span>Base pay (${s.totH}h × ₹${s.perHr}/hr)</span><span>${fmtINR(s.basePay)}</span></div>
-    ${s.plPay>0?`<div class="sr pos"><span>Paid leave (${s.paidPL}d × ${s.emp.duty_hours}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.plPay)}</span></div>`:''}
-    ${s.overtimePay>0?`<div class="sr pos"><span>Overtime (${s.otH}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.overtimePay)}</span></div>`:''}
-    ${s.lbBonus>0?`<div class="sr pu"><span>Leave bonus (${s.LB}d × ${s.emp.duty_hours}h × 50%)</span><span>+${fmtINR(s.lbBonus)}</span></div>`:''}
-    ${s.unpaidDed>0?`<div class="sr neg"><span>Unpaid leave (${s.unpaidL}d)</span><span>−${fmtINR(s.unpaidDed)}</span></div>`:''}
-    ${s.totalAdvance>0?`<div class="sr neg"><span>Advance recovered</span><span>−${fmtINR(s.totalAdvance)}</span></div>`:''}
-    ${s.totalDed>0?`<div class="sr neg"><span>Other deductions</span><span>−${fmtINR(s.totalDed)}</span></div>`:''}
-    ${full&&s.empAdv.length?s.empAdv.map(a=>`<div class="sr neg"><span>${a.record_type==='advance'?'Advance':'Deduction'}${a.note?' — '+a.note:''} · ${a.record_date}</span><span>−${fmtINR(a.amount)}</span></div>`).join(''):''}
-    <div class="stot"><span>Net payable</span><span>${fmtINR(s.netPay)}</span></div>
+    ${slipBreakdownHTML(s)}
   </div>`;
 }
 
+function slipBreakdownHTML(s){
+  return`<div class="sr"><span>Base pay (${s.totH}h × ₹${s.perHr}/hr)</span><span>${fmtINR(s.basePay)}</span></div>
+    ${s.plPay>0?`<div class="sr pos"><span>Paid leave (${s.paidPL}d × ${s.emp.duty_hours}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.plPay)}</span></div>`:''}
+    ${s.otPay>0?`<div class="sr pos"><span>Overtime (${s.otH}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.otPay)}</span></div>`:''}
+    ${s.lbBonus>0?`<div class="sr pu"><span>Leave bonus (${s.LB}d × ${s.emp.duty_hours}h × 50%)</span><span>+${fmtINR(s.lbBonus)}</span></div>`:''}
+    ${s.unpaidDed>0?`<div class="sr neg"><span>Unpaid leave (${s.unpaidL}d)</span><span>−${fmtINR(s.unpaidDed)}</span></div>`:''}
+    ${s.totAdv>0?`<div class="sr neg"><span>Advance recovered</span><span>−${fmtINR(s.totAdv)}</span></div>`:''}
+    ${s.totDed>0?`<div class="sr neg"><span>Other deductions</span><span>−${fmtINR(s.totDed)}</span></div>`:''}
+    ${s.empAdv.map(a=>`<div class="sr neg" style="font-size:11px;color:var(--c3)"><span>↳ ${a.record_type} ${a.note?'— '+a.note:''} · ${a.record_date?.slice(0,10)}</span><span>−${fmtINR(a.amount)}</span></div>`).join('')}
+    <div class="stot"><span>Net payable</span><span>${fmtINR(s.netPay)}</span></div>`;
+}
+
 async function finalizeSalary(){
-  if(!salData){alert('Click "Calculate all" first');return;}
-  if(!confirm(`Finalize salary for ${MN[sM-1]} ${sY}? This saves all slips to the database.`))return;
+  if(!salData){alert('Click Calculate first');return;}
+  if(!confirm(`Finalize salary for ${MONTHS[sM-1]} ${sY}? Slips will be saved.`))return;
   for(const s of salData){
     await sb.from('salary_slips').upsert({
-      employee_id:s.emp.id, slip_year:s.y, slip_month:s.m,
-      slip_data:s, status:'finalized'
+      employee_id:s.emp.id,slip_year:s.y,slip_month:s.m,
+      slip_data:s,status:'finalized',finalized_by:currentUser?.id||null
     },{onConflict:'employee_id,slip_year,slip_month'});
   }
-  alert(`Salary for ${MN[sM-1]} ${sY} has been saved!`);
+  alert(`Salary for ${MONTHS[sM-1]} ${sY} saved!`);
 }
-function chSM(d){sM+=d;if(sM>12){sM=1;sY++;}if(sM<1){sM=12;sY--;}calcSalary();}
 
-// ── Salary slip view ──────────────────────────────────────────────────────────
-function initSlipMonths(){
-  const s=document.getElementById('slip-mon');
-  s.innerHTML=MN.map((m,i)=>`<option value="${i+1}" ${i===new Date().getMonth()?'selected':''}>${m}</option>`).join('');
+// ════════════════════════════════════════════════════════════
+// SALARY SLIP VIEW
+// ════════════════════════════════════════════════════════════
+async function fetchSlipData(empId,y,m){
+  const emp=employees.find(e=>e.id===empId);if(!emp)return null;
+  const ms=`${y}-${pad(m)}`;
+  const dim=getDIM(y,m);
+  const[pR,oR,aR]=await Promise.all([
+    sb.from('punches').select('*').eq('employee_id',empId).gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
+    sb.from('attendance_overrides').select('*').eq('employee_id',empId).gte('override_date',ms+'-01').lte('override_date',ms+'-31'),
+    sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',ms+'-01').lte('record_date',ms+'-31')
+  ]);
+  return computeSlip(emp,y,m,dim,pR.data||[],oR.data||[],aR.data||[]);
 }
-async function viewSlip(){
+
+async function viewSlip(targetId){
   const empId=document.getElementById('slip-emp').value;
   const m=parseInt(document.getElementById('slip-mon').value);
   const y=parseInt(document.getElementById('slip-yr').value);
-  if(!empId){alert('Select an employee');return;}
-  const emp=employees.find(e=>e.id===empId);
-  if(!emp)return;
-  const monthStr=`${y}-${pad(m)}`;
-  const dim=getDIM(y,m);
-  const [pRes,oRes,aRes]=await Promise.all([
-    sb.from('punches').select('employee_id,punch_date,punch_time,punch_type').eq('employee_id',empId).gte('punch_date',monthStr+'-01').lte('punch_date',monthStr+'-31'),
-    sb.from('attendance_overrides').select('employee_id,override_date,status').eq('employee_id',empId).gte('override_date',monthStr+'-01').lte('override_date',monthStr+'-31'),
-    sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',monthStr+'-01').lte('record_date',monthStr+'-31')
-  ]);
-  const s=computeSlip(emp,y,m,dim,pRes.data||[],oRes.data||[],aRes.data||[]);
-  document.getElementById('slip-out').innerHTML=`
-    <div class="card" style="max-width:560px">
-      <div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:0.5px solid var(--border);margin-bottom:14px">
-        <div class="av" style="width:48px;height:48px;font-size:18px;background:var(--abg);color:#633806">${initials(emp.name)}</div>
-        <div style="flex:1"><div style="font-size:16px;font-weight:600">${emp.name}</div>
-        <div style="font-size:12px;color:var(--c2)">${emp.role||''}${emp.employee_code?' · '+emp.employee_code:''} · ${emp.shift_name||''} (${emp.shift_start?.slice(0,5)||''}–${emp.shift_end?.slice(0,5)||''})</div></div>
-        <div style="text-align:right"><div style="font-size:11px;color:var(--c2)">Salary slip</div><div style="font-size:14px;font-weight:600">${MN[m-1]} ${y}</div></div>
-      </div>
-      <div class="mg" style="margin-bottom:14px">
-        <div class="mc"><div class="mc-l">Monthly salary</div><div class="mc-v" style="font-size:16px">${fmtINR(emp.monthly_salary)}</div></div>
-        <div class="mc"><div class="mc-l">Hourly rate</div><div class="mc-v" style="font-size:16px">₹${s.perHr}/hr</div></div>
-        <div class="mc"><div class="mc-l">Hours worked</div><div class="mc-v" style="font-size:16px;color:var(--green)">${s.totH}h</div></div>
-        <div class="mc"><div class="mc-l">OT hours</div><div class="mc-v" style="font-size:16px;color:var(--green)">${s.otH}h</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:14px;color:var(--c2)">
-        <span>Days in month: <strong style="color:var(--c1)">${dim}</strong></span>
-        <span>Duty hrs/day: <strong style="color:var(--c1)">${emp.duty_hours}h</strong></span>
-        <span>Present: <strong style="color:var(--c1)">${s.P}d</strong></span>
-        <span>Half days: <strong style="color:var(--c1)">${s.H}d</strong></span>
-        <span>Earned PL: <strong style="color:var(--c1)">${s.earnedPL}d (1 per 6d worked)</strong></span>
-        <span>PL: <strong style="color:var(--c1)">${s.paidPL}d paid, ${s.unpaidL}d unpaid</strong></span>
-        <span>Leave bonus: <strong style="color:var(--c1)">${s.LB}d</strong></span>
-        <span>Absent/Unmarked: <strong style="color:var(--c1)">${s.A}d</strong></span>
-      </div>
-      <div style="border-top:0.5px solid var(--border);padding-top:12px">
-        <div class="sr" style="margin-bottom:6px;font-size:11px"><span>Formula: ${fmtINR(emp.monthly_salary)} ÷ ${dim} days ÷ ${emp.duty_hours}h = ₹${s.perHr}/hr</span></div>
-        <div class="sr"><span>Base pay — ${s.totH}h worked × ₹${s.perHr}/hr</span><span>${fmtINR(s.basePay)}</span></div>
-        ${s.plPay>0?`<div class="sr pos"><span>Paid leave — ${s.paidPL}d × ${emp.duty_hours}h × ₹${s.perHr}/hr</span><span>+${fmtINR(s.plPay)}</span></div>`:''}
-        ${s.overtimePay>0?`<div class="sr pos"><span>Overtime — ${s.otH}h × ₹${s.perHr}/hr</span><span>+${fmtINR(s.overtimePay)}</span></div>`:''}
-        ${s.lbBonus>0?`<div class="sr pu"><span>Leave bonus — ${s.LB}d × ${emp.duty_hours}h × 50%</span><span>+${fmtINR(s.lbBonus)}</span></div>`:''}
-        ${s.unpaidDed>0?`<div class="sr neg"><span>Unpaid leave — ${s.unpaidL}d beyond earned PL</span><span>−${fmtINR(s.unpaidDed)}</span></div>`:''}
-        ${s.empAdv.map(a=>`<div class="sr neg"><span>${a.record_type==='advance'?'Advance':'Deduction'}${a.note?' — '+a.note:''} · ${a.record_date}</span><span>−${fmtINR(a.amount)}</span></div>`).join('')}
-        <div class="stot"><span>Net payable</span><span>${fmtINR(s.netPay)}</span></div>
-      </div>
-      <div style="font-size:11px;color:var(--c3);margin-top:14px;padding-top:10px;border-top:0.5px solid var(--border)">
-        Gossip — Artisan Bakery & Cafe · Generated ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
-      </div>
-    </div>`;
+  if(!empId){alert('Select employee');return;}
+  const s=await fetchSlipData(empId,y,m);
+  if(!s)return;
+  document.getElementById(targetId).innerHTML=buildSlipHTML(s,y,m);
 }
 
-// ── Staff punch ───────────────────────────────────────────────────────────────
+async function viewMySlip(){
+  const emp=staffUser||employees.find(e=>e.id===currentProfile?.employee_id);
+  // For staff logged in via PIN, use staffUser
+  let empId=staffUser?.id;
+  if(!empId){alert('Could not identify your employee record');return;}
+  const m=parseInt(document.getElementById('myslip-mon').value);
+  const y=parseInt(document.getElementById('myslip-yr').value);
+  const s=await fetchSlipData(empId,y,m);
+  if(!s)return;
+  document.getElementById('myslip-out').innerHTML=buildSlipHTML(s,y,m);
+}
+
+function buildSlipHTML(s,y,m){
+  return`<div class="card" style="max-width:560px">
+    <div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:0.5px solid var(--bd);margin-bottom:14px">
+      <div class="av" style="width:48px;height:48px;font-size:18px;background:var(--abg);color:#633806">${initials(s.emp.name)}</div>
+      <div style="flex:1"><div style="font-size:16px;font-weight:600">${s.emp.name}</div>
+      <div style="font-size:12px;color:var(--c2)">${s.emp.role||''}${s.emp.employee_code?' · '+s.emp.employee_code:''} · ${s.emp.shift_name||''} (${s.emp.shift_start?.slice(0,5)||''}–${s.emp.shift_end?.slice(0,5)||''})</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:var(--c2)">Salary slip</div><div style="font-size:14px;font-weight:600">${MONTHS[m-1]} ${y}</div></div>
+    </div>
+    <div class="mg" style="margin-bottom:14px">
+      <div class="mc"><div class="mc-l">Monthly salary</div><div class="mc-v" style="font-size:16px">${fmtINR(s.emp.monthly_salary)}</div></div>
+      <div class="mc"><div class="mc-l">Hourly rate</div><div class="mc-v" style="font-size:16px">₹${s.perHr}/hr</div></div>
+      <div class="mc"><div class="mc-l">Hours worked</div><div class="mc-v" style="font-size:16px;color:var(--green)">${s.totH}h</div></div>
+      <div class="mc"><div class="mc-l">OT hours</div><div class="mc-v" style="font-size:16px;color:var(--green)">${s.otH}h</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:14px;color:var(--c2)">
+      <span>Days in month: <strong style="color:var(--c1)">${s.dim}</strong></span>
+      <span>Duty hrs/day: <strong style="color:var(--c1)">${s.emp.duty_hours}h</strong></span>
+      <span>Present: <strong style="color:var(--c1)">${s.P}d</strong></span>
+      <span>Half days: <strong style="color:var(--c1)">${s.H}d</strong></span>
+      <span>Earned PL: <strong style="color:var(--c1)">${s.earnedPL}d (1 per 6d)</strong></span>
+      <span>PL: <strong style="color:var(--c1)">${s.paidPL}d paid, ${s.unpaidL}d unpaid</strong></span>
+      <span>Leave bonus: <strong style="color:var(--c1)">${s.LB}d</strong></span>
+      <span>Absent/Unmarked: <strong style="color:var(--c1)">${s.A}d</strong></span>
+    </div>
+    <div style="border-top:0.5px solid var(--bd);padding-top:12px">
+      <div class="sr" style="font-size:11px;margin-bottom:8px;color:var(--c3)">
+        <span>Formula: ${fmtINR(s.emp.monthly_salary)} ÷ ${s.dim}d ÷ ${s.emp.duty_hours}h = ₹${s.perHr}/hr</span>
+      </div>
+      ${slipBreakdownHTML(s)}
+    </div>
+    <div style="font-size:11px;color:var(--c3);margin-top:14px;padding-top:10px;border-top:0.5px solid var(--bd)">
+      Gossip — Artisan Bakery & Cafe · ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// MY ATTENDANCE (staff)
+// ════════════════════════════════════════════════════════════
+async function renderMyAtt(){
+  document.getElementById('myatt-ml').textContent=`${MONTHS[myM-1]} ${myY}`;
+  const emp=staffUser;if(!emp){document.getElementById('myatt-wrap').innerHTML='<div class="empty">Not logged in as staff.</div>';return;}
+  const ms=`${myY}-${pad(myM)}`;
+  const[pR,oR]=await Promise.all([
+    sb.from('punches').select('*').eq('employee_id',emp.id).gte('punch_date',ms+'-01').lte('punch_date',ms+'-31').order('punch_date').order('punch_time'),
+    sb.from('attendance_overrides').select('*').eq('employee_id',emp.id).gte('override_date',ms+'-01').lte('override_date',ms+'-31')
+  ]);
+  const punches=pR.data||[],overrides=oR.data||[];
+  const dim=getDIM(myY,myM);
+  let rows='';
+  for(let d=1;d<=dim;d++){
+    const ds=`${myY}-${pad(myM)}-${pad(d)}`;
+    const ovr=overrides.find(o=>o.override_date?.slice(0,10)===ds);
+    const dp=punches.filter(p=>p.punch_date?.slice(0,10)===ds);
+    const{hours,autoOut}=calcDayResult(dp,emp.shift_end);
+    let st=ovr?ovr.status:'';
+    if(!st&&hours>0){st=hours>=emp.duty_hours*0.8?'P':hours>=emp.duty_hours*0.4?'H':'P';}
+    const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(myY,myM-1,d).getDay()];
+    const cfg=SCFG[st]||SCFG[''];
+    const badge=st?`<span class="badge" style="background:${cfg.bg};color:${cfg.tc}">${{P:'Present',A:'Absent',H:'Half day',L:'Paid leave',LB:'Leave bonus'}[st]||st}</span>`:'<span class="badge bgr">Unmarked</span>';
+    rows+=`<tr>
+      <td>${d} ${dow}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px">${dp.map(p=>`<span class="badge ${p.punch_type==='in'?'bg':'br'}" style="margin-right:3px">${p.punch_type.toUpperCase()} ${p.punch_time?.slice(0,5)}</span>`).join('')||'—'}</td>
+      <td>${hours>0?hours.toFixed(1)+'h'+(autoOut?' ⚠':''):'—'}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }
+  document.getElementById('myatt-wrap').innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap">
+    <table><thead><tr><th>Date</th><th>Punches</th><th>Hours</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+  </div></div>
+  <div style="font-size:11px;color:var(--c2);margin-top:8px">⚠ Auto punch-out was used (forgot to clock out — shift end time used)</div>`;
+}
+function chMyM(d){myM+=d;if(myM>12){myM=1;myY++;}if(myM<1){myM=12;myY--;}renderMyAtt();}
+
+// ════════════════════════════════════════════════════════════
+// MANAGERS
+// ════════════════════════════════════════════════════════════
+async function addManager(){
+  const name=document.getElementById('mgr-name').value.trim();
+  const email=document.getElementById('mgr-email').value.trim();
+  const pass=document.getElementById('mgr-pass').value;
+  const err=document.getElementById('mgr-err');
+  if(!name||!email||!pass){err.textContent='All fields required';return;}
+  if(pass.length<8){err.textContent='Password must be at least 8 characters';return;}
+  err.textContent='Creating…';
+  // Use admin API via supabase admin — we use signUp here since we don't have service key
+  const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{name,role:'manager'}}});
+  if(error){err.textContent=error.message;return;}
+  if(data.user){
+    await sb.from('user_profiles').insert({id:data.user.id,name,role:'manager'});
+  }
+  err.textContent='';
+  document.getElementById('mgr-name').value='';document.getElementById('mgr-email').value='';document.getElementById('mgr-pass').value='';
+  alert(`Manager account created for ${name}. They can now sign in at the login screen.`);
+  await loadManagers();
+}
+async function loadManagers(){
+  const{data}=await sb.from('user_profiles').select('*').eq('role','manager').order('name');
+  const mgrs=data||[];
+  const d=document.getElementById('mgr-list');
+  if(!mgrs.length){d.innerHTML='<div class="empty">No managers yet. Add one above.</div>';return;}
+  d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
+    <thead><tr><th>Name</th><th>Role</th><th>Created</th></tr></thead>
+    <tbody>${mgrs.map(m=>`<tr>
+      <td style="font-weight:600">${m.name}</td>
+      <td><span class="badge bb">Manager</span></td>
+      <td style="color:var(--c2);font-size:11px">${new Date(m.created_at).toLocaleDateString('en-IN')}</td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+// STAFF KIOSK — PUNCH
+// ════════════════════════════════════════════════════════════
 function renderTiles(){
-  const d=document.getElementById('emp-tiles');
+  const d=document.getElementById('emp-tiles');if(!d)return;
   if(!employees.length){d.innerHTML='<div class="empty">No employees added yet.</div>';return;}
   d.innerHTML=employees.map((e,i)=>`
-    <div class="emp-tile" onclick="selectEmp('${e.id}')">
+    <div class="emp-tile" onclick="kioskSelect('${e.id}')">
       <div class="av" style="width:48px;height:48px;font-size:18px;background:${AVBG[i%6]};color:${AVTC[i%6]}">${initials(e.name)}</div>
       <div style="flex:1"><div style="font-size:15px;font-weight:600">${e.name}</div>
       <div style="font-size:12px;color:var(--c2)">${e.role||''}${e.shift_name?' · '+e.shift_name:''}</div></div>
       <span style="color:var(--c3);font-size:20px;opacity:0.3">›</span>
     </div>`).join('');
-  showSF('tiles');
+  showKioskStep('tiles');
 }
-function showSF(s){['tiles','pin','punch'].forEach(x=>document.getElementById('sf-'+x).style.display=x===s?'block':'none');}
-function selectEmp(id){
-  selEmp=employees.find(e=>e.id===id); if(!selEmp)return;
-  pinVal=''; updDots();
-  document.getElementById('sf-av').textContent=initials(selEmp.name);
-  document.getElementById('sf-nm').textContent=selEmp.name;
-  document.getElementById('sf-rl').textContent=(selEmp.role||'')+(selEmp.shift_name?' · '+selEmp.shift_name:'');
+function showKioskStep(s){['tiles','pin','punch'].forEach(x=>document.getElementById('kiosk-'+x).style.display=x===s?'block':'none');}
+function kioskSelect(id){
+  selEmp=employees.find(e=>e.id===id);if(!selEmp)return;
+  pinVal='';updDots();
+  document.getElementById('kp-av').textContent=initials(selEmp.name);
+  document.getElementById('kp-nm').textContent=selEmp.name;
+  document.getElementById('kp-rl').textContent=(selEmp.role||'')+(selEmp.shift_name?' · '+selEmp.shift_name:'');
   document.getElementById('pin-err').textContent='';
-  showSF('pin');
+  showKioskStep('pin');
 }
 function backToTiles(){
-  selEmp=null; pinVal='';
+  selEmp=null;pinVal='';
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
   document.getElementById('si').style.display='none';
   document.getElementById('pmsg').textContent='';
-  renderTiles();
+  renderTiles();showKioskStep('tiles');
 }
 function updDots(){for(let i=0;i<4;i++)document.getElementById('dot'+i).classList.toggle('on',i<pinVal.length);}
 function pk(k){
   if(k==='C'){pinVal='';updDots();document.getElementById('pin-err').textContent='';return;}
   if(k==='X'){pinVal=pinVal.slice(0,-1);updDots();return;}
   if(pinVal.length>=4)return;
-  pinVal+=k; updDots();
+  pinVal+=k;updDots();
   if(pinVal.length===4){
     setTimeout(()=>{
       if(pinVal===String(selEmp.pin)){
         document.getElementById('pin-err').textContent='';
-        document.getElementById('sp-av').textContent=initials(selEmp.name);
-        document.getElementById('sp-nm').textContent=selEmp.name;
-        showSF('punch');
-        loadTodayLog(); startCam();
-      } else {
+        document.getElementById('kpu-av').textContent=initials(selEmp.name);
+        document.getElementById('kpu-nm').textContent=selEmp.name;
+        showKioskStep('punch');
+        loadTodayLog();startCam();
+      }else{
         document.getElementById('pin-err').textContent='Wrong PIN. Try again.';
-        pinVal=''; updDots();
+        pinVal='';updDots();
       }
     },120);
   }
 }
 async function loadTodayLog(){
+  if(!selEmp)return;
   const today=todayStr();
-  const {data}=await sb.from('punches').select('*').eq('employee_id',selEmp.id).eq('punch_date',today).order('punch_time');
-  const hrs=calcHrs(data||[]);
+  const{data}=await sb.from('punches').select('*').eq('employee_id',selEmp.id).eq('punch_date',today).order('punch_time');
+  const{hours}=calcDayResult(data||[],selEmp.shift_end);
   const d=document.getElementById('tdlog');
-  d.innerHTML=(data&&data.length)?`<div style="font-size:11px;color:var(--c2);margin-bottom:6px">Today — ${hrs.toFixed(1)}h so far</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">${data.map(p=>`<span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()} ${p.punch_time?.slice(0,5)}</span>`).join('')}</div>`:'';
+  d.innerHTML=(data&&data.length)?`<div style="font-size:11px;color:var(--c2);margin-bottom:6px">Today — ${hours.toFixed(1)}h so far</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${data.map(p=>`<span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()} ${p.punch_time?.slice(0,5)}</span>`).join('')}</div>`:'';
 }
 function startCam(){
   if(!navigator.mediaDevices?.getUserMedia)return;
@@ -887,12 +1343,12 @@ async function doPunch(type){
   const time=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
   let selfieUrl=null;
   const img=document.getElementById('si');
-  if(img.style.display!=='none'&&img.src){
+  if(img.style.display!=='none'&&img.src.startsWith('data:')){
     try{
       const blob=await(await fetch(img.src)).blob();
       const fname=`${selEmp.id}/${today}-${time.replace(':','-')}.jpg`;
-      const {data}=await sb.storage.from('selfies').upload(fname,blob,{contentType:'image/jpeg',upsert:true});
-      if(data){const {data:url}=sb.storage.from('selfies').getPublicUrl(fname);selfieUrl=url.publicUrl;}
+      const{data}=await sb.storage.from('selfies').upload(fname,blob,{contentType:'image/jpeg',upsert:true});
+      if(data){const{data:url}=sb.storage.from('selfies').getPublicUrl(fname);selfieUrl=url.publicUrl;}
     }catch(e){}
   }
   await sb.from('punches').insert({employee_id:selEmp.id,punch_date:today,punch_time:time,punch_type:type,source:'staff',selfie_url:selfieUrl});
@@ -901,6 +1357,12 @@ async function doPunch(type){
   if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
   setTimeout(backToTiles,2500);
 }
+
+// Default admin dates
+const _n=new Date();
+const _pd=document.getElementById('p-date');if(_pd)_pd.value=todayStr();
+const _pt=document.getElementById('p-time');if(_pt)_pt.value=`${pad(_n.getHours())}:${pad(_n.getMinutes())}`;
+const _ad=document.getElementById('adv-date');if(_ad)_ad.value=todayStr();
 </script>
 </body>
 </html>
