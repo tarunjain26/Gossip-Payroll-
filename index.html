@@ -1044,30 +1044,61 @@ function previewXlsx(rows){
 
 async function importEmployees(rows){
   if(!rows||!rows.length)return;
-  let success=0,failed=0,failNames=[];
+  const preview=document.getElementById('upload-preview');
+  preview.innerHTML='<div class="info-box">Importing… please wait.</div>';
+  let success=0,failed=0,failDetails=[];
+
   for(const r of rows){
     const emp={
-      name:r.name,role:r.role||null,employee_code:r.employee_code||null,
-      phone:r.phone||null,shift_name:r.shift_name||null,
-      shift_start:r.shift_start||'09:00',shift_end:r.shift_end||'19:00',
-      duty_hours:parseFloat(r.duty_hours)||10,
-      monthly_salary:parseFloat(r.monthly_salary),
-      pin:String(r.pin),
-      join_date:parseJoinDate(r.join_date)||null,
+      name:      r.name,
+      role:      r.role||null,
+      employee_code: r.employee_code||null,
+      phone:     cleanPhone(r.phone)||null,
+      shift_name:r.shift_name||null,
+      shift_start:parseTimeVal(r.shift_start)||'09:00',
+      shift_end:  parseTimeVal(r.shift_end)||'19:00',
+      duty_hours: parseFloat(r.duty_hours)||10,
+      monthly_salary:parseFloat(String(r.monthly_salary).replace(/,/g,'')),
+      pin:        String(r.pin).replace(/\.0$/,''),
+      join_date:  parseJoinDate(r.join_date)||null,
       bank_account_name:r.bank_account_name||null,
-      bank_account_no:r.bank_account_no||null,
-      bank_ifsc:r.bank_ifsc||null,
-      bank_name:r.bank_name||null,
+      bank_account_no:  r.bank_account_no||null,
+      bank_ifsc:  r.bank_ifsc||null,
+      bank_name:  r.bank_name||null,
     };
     const{error}=await sb.from('employees').insert(emp);
-    if(error){failed++;failNames.push(r.name);}
-    else success++;
+    if(error){
+      failed++;
+      failDetails.push(`${r.name}: ${error.message}`);
+    } else success++;
   }
-  document.getElementById('upload-preview').innerHTML=`
-    <div class="success-box">✓ ${success} employees imported successfully${failed?`<br>⚠ ${failed} failed: ${failNames.join(', ')}`:''}.</div>`;
+
+  let html='';
+  if(success>0) html+=`<div class="success-box">✓ ${success} employees imported successfully.</div>`;
+  if(failed>0)  html+=`<div class="warn-box">⚠ ${failed} failed:<br>${failDetails.map(e=>'• '+e).join('<br>')}</div>`;
+  preview.innerHTML=html;
   document.getElementById('xlsx-input').value='';
   window._xlsxRows=null;
-  await loadAll();
+  if(success>0) await loadAll();
+}
+
+// Parse time — handles "09:00", Date objects serialized as strings, Excel serial numbers
+function parseTimeVal(v){
+  if(!v||String(v).trim()==='')return null;
+  const s=String(v).trim();
+  // Already HH:MM
+  if(/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5,'0');
+  // Extract HH:MM from date string like "Tue Apr 08 2026 13:00:00..."
+  const m=s.match(/(\d{1,2}):(\d{2})(?::\d{2})?/);
+  if(m) return `${m[1].padStart(2,'0')}:${m[2]}`;
+  return null;
+}
+
+function cleanPhone(p){
+  if(!p||String(p).trim()===''||String(p).trim()==='None')return null;
+  let s=String(p).replace(/\+91/g,'').replace(/[-\s\xa0]/g,'').trim();
+  if(s.startsWith('91')&&s.length>10)s=s.slice(2);
+  return s||null;
 }
 function parseJoinDate(d){
   if(!d||d==='')return null;
