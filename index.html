@@ -222,14 +222,38 @@ tr:hover td{background:var(--bg)}
         <button class="btn btn-p btn-full" onclick="doLogin()" id="login-btn">Sign in</button>
       </div>
       <div id="auth-staff" style="display:none">
-        <div style="font-size:13px;color:var(--c2);margin-bottom:14px">Select your name, then enter your 4-digit PIN</div>
-        <div class="field" style="margin-bottom:14px">
-          <label>Your name</label>
-          <select id="staff-sel"><option value="">Select your name…</option></select>
+        <div id="staff-step1">
+          <div style="font-size:13px;color:var(--c2);margin-bottom:14px">Select your name then enter your 4-digit PIN</div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Your name</label>
+            <select id="staff-sel"><option value="">Select your name</option></select>
+          </div>
+          <button class="btn btn-p btn-full" onclick="goStaffPin()">Continue to PIN</button>
+          <div style="margin-top:10px;text-align:center">
+            <button class="btn btn-ghost btn-sm" onclick="goStaffPunch()">Just punch in/out</button>
+          </div>
         </div>
-        <button class="btn btn-p btn-full" onclick="goStaffPin()">Continue to PIN</button>
-        <div style="margin-top:10px;text-align:center">
-          <button class="btn btn-ghost btn-sm" onclick="goStaffPunch()">Just punch in/out →</button>
+        <div id="staff-step2" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="backToStaffSelect()" style="margin-bottom:12px">← Back</button>
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <div class="av" id="auth-av" style="width:48px;height:48px;font-size:18px;background:var(--abg);color:#633806;margin-bottom:6px"></div>
+            <div id="auth-empname" style="font-size:15px;font-weight:600;margin-bottom:2px"></div>
+            <div id="auth-emprole" style="font-size:12px;color:var(--c2);margin-bottom:14px"></div>
+            <div style="font-size:12px;color:var(--c2);margin-bottom:8px">Enter your 4-digit PIN</div>
+            <div class="pin-dots" style="margin-bottom:6px">
+              <div class="pdot" id="apdot0"></div><div class="pdot" id="apdot1"></div>
+              <div class="pdot" id="apdot2"></div><div class="pdot" id="apdot3"></div>
+            </div>
+            <div id="auth-pin-err" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:4px"></div>
+            <div class="pkgrid">
+              <button class="pk" onclick="apk('1')">1</button><button class="pk" onclick="apk('2')">2</button><button class="pk" onclick="apk('3')">3</button>
+              <button class="pk" onclick="apk('4')">4</button><button class="pk" onclick="apk('5')">5</button><button class="pk" onclick="apk('6')">6</button>
+              <button class="pk" onclick="apk('7')">7</button><button class="pk" onclick="apk('8')">8</button><button class="pk" onclick="apk('9')">9</button>
+              <button class="pk" onclick="apk('C')" style="font-size:12px;font-family:'DM Sans',sans-serif">Clear</button>
+              <button class="pk" onclick="apk('0')">0</button>
+              <button class="pk" onclick="apk('X')" style="font-size:17px">⌫</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -705,12 +729,58 @@ async function doLogin(){
   await loadAll();
   showApp();
 }
+// Auth-screen PIN state
+let authPinVal='', authPinEmp=null;
+
 function goStaffPin(){
   const id=document.getElementById('staff-sel').value;
   if(!id){alert('Select your name first');return;}
-  staffUser=employees.find(e=>e.id===id);
-  currentUser=null;currentProfile=null;
-  showApp();gs('myslip');
+  authPinEmp=employees.find(e=>e.id===id);
+  if(!authPinEmp)return;
+  authPinVal='';
+  // Show step 2 PIN pad
+  document.getElementById('staff-step1').style.display='none';
+  document.getElementById('staff-step2').style.display='block';
+  document.getElementById('auth-av').textContent=initials(authPinEmp.name);
+  document.getElementById('auth-empname').textContent=authPinEmp.name;
+  document.getElementById('auth-emprole').textContent=authPinEmp.role||authPinEmp.shift_name||'';
+  document.getElementById('auth-pin-err').textContent='';
+  updAuthDots();
+}
+function backToStaffSelect(){
+  authPinVal='';authPinEmp=null;
+  document.getElementById('staff-step1').style.display='block';
+  document.getElementById('staff-step2').style.display='none';
+  document.getElementById('auth-pin-err').textContent='';
+}
+function updAuthDots(){
+  for(let i=0;i<4;i++){
+    const el=document.getElementById('apdot'+i);
+    if(el)el.classList.toggle('on',i<authPinVal.length);
+  }
+}
+function apk(k){
+  if(k==='C'){authPinVal='';updAuthDots();document.getElementById('auth-pin-err').textContent='';return;}
+  if(k==='X'){authPinVal=authPinVal.slice(0,-1);updAuthDots();return;}
+  if(authPinVal.length>=4)return;
+  authPinVal+=k;updAuthDots();
+  if(authPinVal.length===4){
+    setTimeout(()=>{
+      const storedPin=String(authPinEmp.pin).replace(/\.0$/,'').trim();
+      if(authPinVal===storedPin){
+        // PIN correct — enter app as staff
+        staffUser=authPinEmp;
+        currentUser=null;currentProfile=null;
+        // Reset auth screen for next time
+        backToStaffSelect();
+        document.getElementById('staff-sel').value='';
+        loadAll().then(()=>{showApp();gs('myslip');});
+      }else{
+        document.getElementById('auth-pin-err').textContent='Wrong PIN. Try again.';
+        authPinVal='';updAuthDots();
+      }
+    },120);
+  }
 }
 function goStaffPunch(){
   currentUser=null;currentProfile=null;staffUser=null;
