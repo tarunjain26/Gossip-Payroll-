@@ -590,8 +590,7 @@ let staffUser=null; // logged-in staff employee
 // ════════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════════
-window.onload=async()=>{
-  await sb.auth.signOut();  
+window.onload=async()=>{  
   const n=new Date();
   document.getElementById('top-date').textContent=n.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   initMonthSelects();
