@@ -1082,15 +1082,23 @@ async function importEmployees(rows){
   if(success>0) await loadAll();
 }
 
-// Parse time — handles "09:00", Date objects serialized as strings, Excel serial numbers
+// Parse time — handles "09:00", "4/8/2026 13:00:00", "Tue Apr 08 2026 13:00:00..."
 function parseTimeVal(v){
   if(!v||String(v).trim()==='')return null;
   const s=String(v).trim();
-  // Already HH:MM
+  // Already HH:MM or H:MM
   if(/^\d{1,2}:\d{2}$/.test(s)) return s.padStart(5,'0');
-  // Extract HH:MM from date string like "Tue Apr 08 2026 13:00:00..."
+  // "4/8/2026 13:00:00" — XLSX.js datetime format, take the time part after the space
+  if(s.includes(' ')){
+    const timePart=s.split(' ')[1];
+    if(timePart){
+      const m=timePart.match(/^(\d{1,2}):(\d{2})/);
+      if(m)return`${m[1].padStart(2,'0')}:${m[2]}`;
+    }
+  }
+  // Extract HH:MM from any string
   const m=s.match(/(\d{1,2}):(\d{2})(?::\d{2})?/);
-  if(m) return `${m[1].padStart(2,'0')}:${m[2]}`;
+  if(m)return`${m[1].padStart(2,'0')}:${m[2]}`;
   return null;
 }
 
@@ -1101,12 +1109,22 @@ function cleanPhone(p){
   return s||null;
 }
 function parseJoinDate(d){
-  if(!d||d==='')return null;
-  // Handle DD/MM/YYYY
-  const parts=d.split('/');
-  if(parts.length===3)return`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-  // Handle YYYY-MM-DD
-  if(d.match(/^\d{4}-\d{2}-\d{2}$/))return d;
+  if(!d||String(d).trim()===''||String(d).trim()==='None')return null;
+  const s=String(d).trim();
+  // Already YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  // M/D/YYYY or MM/DD/YYYY — XLSX.js default date format
+  const slash=s.split('/');
+  if(slash.length===3){
+    const y=slash[2].replace(/\s.*$/,''); // strip any time part
+    const m=slash[0].padStart(2,'0');
+    const day=slash[1].padStart(2,'0');
+    // Validate year is reasonable (not a time being misread as date)
+    if(parseInt(y)>=2000&&parseInt(y)<=2100)return`${y}-${m}-${day}`;
+  }
+  // DD-MM-YYYY
+  const dash=s.split('-');
+  if(dash.length===3&&dash[0].length<=2)return`${dash[2]}-${dash[1].padStart(2,'0')}-${dash[0].padStart(2,'0')}`;
   return null;
 }
 
