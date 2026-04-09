@@ -111,7 +111,7 @@ tr:hover td{background:var(--bg)}
 
 /* ── Attendance ── */
 .att-card{background:#fff;border:0.5px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:10px}
-.day-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-top:8px}
+.day-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-top:8px}.dchip{height:auto!important;min-height:44px}
 .dchip{height:36px;border:none;border-radius:7px;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:var(--bg2);color:var(--c3);transition:opacity .1s;position:relative}
 .dchip:hover{opacity:0.8}
 .dchip .wdot{position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:#f59e0b}
@@ -170,7 +170,7 @@ tr:hover td{background:var(--bg)}
 .mnb{width:32px;height:32px;border:0.5px solid var(--bd);border-radius:10px;background:transparent;font-size:16px;cursor:pointer;color:var(--c1);display:flex;align-items:center;justify-content:center}
 .mnb:hover{background:var(--bg2)}
 .mnl{min-width:120px;text-align:center;font-size:14px;font-weight:600}
-.selfie-vid{width:100%;border-radius:14px;background:#111;height:140px;object-fit:cover;display:block}
+.selfie-vid{width:100%;border-radius:14px;background:#111;height:220px;object-fit:cover;display:block}
 .divider{height:0.5px;background:var(--bd);margin:14px 0}
 .section-label{font-size:10px;font-weight:600;color:var(--c2);text-transform:uppercase;letter-spacing:0.08em;margin:16px 0 8px}
 
@@ -278,7 +278,8 @@ tr:hover td{background:var(--bg)}
   <div class="body">
     <div class="sidebar" id="sidebar">
       <div id="admin-nav" style="display:none">
-        <button class="snav on" onclick="gp('team')"><span class="snav-icon">👤</span>Team</button>
+        <button class="snav on" onclick="gp('dashboard')"><span class="snav-icon">🏠</span>Dashboard</button>
+        <button class="snav" onclick="gp('team')"><span class="snav-icon">👤</span>Team</button>
         <button class="snav" onclick="gp('att')"><span class="snav-icon">📅</span>Attendance</button>
         <button class="snav" onclick="gp('punches')"><span class="snav-icon">🕐</span>Punch log</button>
         <button class="snav" onclick="gp('advances')"><span class="snav-icon">💰</span>Advances</button>
@@ -301,8 +302,34 @@ tr:hover td{background:var(--bg)}
       <!-- ══ ADMIN ══ -->
       <div id="admin-sections" style="display:none">
 
+        <!-- DASHBOARD -->
+        <div id="sec-dashboard" class="sec on">
+          <div class="page-title">Dashboard</div>
+          <div class="mg" id="dash-metrics" style="margin-bottom:16px"></div>
+          <div class="g2" style="margin-bottom:14px">
+            <div class="card" style="margin-bottom:0">
+              <div class="card-title" style="display:flex;justify-content:space-between">
+                <span>Punched IN today</span>
+                <span id="dash-in-count" style="color:var(--green);font-size:18px;font-weight:600">—</span>
+              </div>
+              <div id="dash-in-list" style="font-size:13px"></div>
+            </div>
+            <div class="card" style="margin-bottom:0">
+              <div class="card-title" style="display:flex;justify-content:space-between">
+                <span>Not yet punched in</span>
+                <span id="dash-out-count" style="color:var(--red);font-size:18px;font-weight:600">—</span>
+              </div>
+              <div id="dash-out-list" style="font-size:13px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Today's punch log</div>
+            <div id="dash-today-log"></div>
+          </div>
+        </div>
+
         <!-- TEAM -->
-        <div id="sec-team" class="sec on">
+        <div id="sec-team" class="sec">
           <div class="page-title">Team</div>
 
           <!-- Upload Excel card -->
@@ -384,16 +411,47 @@ tr:hover td{background:var(--bg)}
 
         <!-- PUNCHES -->
         <div id="sec-punches" class="sec">
-          <div class="page-title">Punch log</div>
+          <div class="fl" style="margin-bottom:16px;gap:10px;flex-wrap:wrap">
+            <div class="page-title" style="margin:0">Punch log</div>
+            <div class="month-nav">
+              <button class="mnb" onclick="chPM(-1)">‹</button>
+              <div class="mnl" id="punch-ml"></div>
+              <button class="mnb" onclick="chPM(1)">›</button>
+            </div>
+            <select id="punch-filter-emp" onchange="loadPunches()" style="height:32px;font-size:12px;width:auto;min-width:140px">
+              <option value="">All employees</option>
+            </select>
+          </div>
           <div class="card">
             <div class="card-title">Add / correct punch</div>
+            <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+              <div class="field" style="flex:1;min-width:160px;margin-bottom:0">
+                <label>Filter by employee</label>
+                <select id="p-emp-filter" onchange="loadPunches()">
+                  <option value="">All employees</option>
+                </select>
+              </div>
+              <div style="font-size:12px;color:var(--c2);padding-top:16px">
+                <span class="badge bb">admin/manager</span> = corrected punch &nbsp;
+                <span class="badge bgr">staff</span> = self punch
+              </div>
+            </div>
             <div class="g4">
               <div class="field"><label>Employee</label><select id="p-emp"><option value="">Select</option></select></div>
               <div class="field"><label>Date</label><input id="p-date" type="date"></div>
               <div class="field"><label>Time</label><input id="p-time" type="time"></div>
               <div class="fl" style="align-items:flex-end;gap:6px">
-                <button class="btn btn-g" style="flex:1" onclick="adminPunch('in')">IN</button>
-                <button class="btn btn-r" style="flex:1" onclick="adminPunch('out')">OUT</button>
+                <button class="btn btn-g" style="flex:1" id="punch-in-btn" onclick="adminPunch('in')">Punch IN</button>
+                <button class="btn btn-r" style="flex:1" id="punch-out-btn" onclick="adminPunch('out')">Punch OUT</button>
+                <button class="btn btn-ghost btn-sm" id="punch-cancel-btn" style="display:none" onclick="cancelEditPunch()">Cancel</button>
+              </div>
+            </div>
+            <div id="punch-edit-info" style="font-size:12px;color:var(--blue);margin-top:8px;display:none">Editing existing punch — update the fields above and click Punch IN or OUT to save</div>
+          </div>
+          <div class="card" style="padding:12px 14px">
+            <div class="fl" style="gap:10px">
+              <div class="field" style="flex:1;margin:0"><label>Filter by employee</label>
+                <select id="punch-filter-emp" onchange="loadPunches()"><option value="">All employees</option></select>
               </div>
             </div>
           </div>
@@ -534,7 +592,7 @@ tr:hover td{background:var(--bg)}
           <div id="emp-tiles"></div>
         </div>
         <div id="kiosk-pin" style="display:none">
-          <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px">← Back</button>
+          <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px;min-height:44px;padding:0 20px;font-size:14px">← Back</button>
           <div style="max-width:320px;background:#fff;border:0.5px solid var(--bd);border-radius:20px">
             <div class="pin-wrap">
               <div class="av" id="kp-av" style="width:52px;height:52px;font-size:19px;background:var(--abg);color:#633806;margin-bottom:6px"></div>
@@ -556,7 +614,7 @@ tr:hover td{background:var(--bg)}
           </div>
         </div>
         <div id="kiosk-punch" style="display:none">
-          <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px">← Back</button>
+          <button class="btn btn-ghost btn-sm" onclick="backToTiles()" style="margin-bottom:14px;min-height:44px;padding:0 16px;font-size:14px;-webkit-tap-highlight-color:rgba(0,0,0,0.1)">← Back</button>
           <div style="max-width:360px">
             <div class="card">
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
@@ -564,7 +622,7 @@ tr:hover td{background:var(--bg)}
                 <div><div id="kpu-nm" style="font-size:15px;font-weight:600"></div><div id="kpu-clk" style="font-size:12px;color:var(--c2);font-family:'DM Mono',monospace"></div></div>
               </div>
               <div style="margin-bottom:12px">
-                <video id="sv" class="selfie-vid" autoplay playsinline muted></video>
+                <video id="sv" class="selfie-vid" autoplay playsinline muted style="height:200px"></video>
                 <canvas id="sc" style="display:none"></canvas>
                 <img id="si" style="display:none;width:100%;border-radius:14px;margin-top:6px;border:0.5px solid var(--bd)">
                 <div class="fl" style="margin-top:8px">
@@ -590,7 +648,8 @@ tr:hover td{background:var(--bg)}
   <div class="btmnav" id="btmnav">
     <div id="admin-bnav" style="display:none;width:100%">
       <div style="display:flex;width:100%">
-        <button class="bnav on" onclick="gp('team')"><div class="bnav-i">👤</div><div class="bnav-l">Team</div></button>
+        <button class="bnav on" onclick="gp('dashboard')"><div class="bnav-i">🏠</div><div class="bnav-l">Home</div></button>
+        <button class="bnav" onclick="gp('team')"><div class="bnav-i">👤</div><div class="bnav-l">Team</div></button>
         <button class="bnav" onclick="gp('att')"><div class="bnav-i">📅</div><div class="bnav-l">Attend.</div></button>
         <button class="bnav" onclick="gp('punches')"><div class="bnav-i">🕐</div><div class="bnav-l">Punches</div></button>
         <button class="bnav" onclick="gp('advances')"><div class="bnav-i">💰</div><div class="bnav-l">Advances</div></button>
@@ -609,6 +668,10 @@ tr:hover td{background:var(--bg)}
 </div>
 
 <!-- Modals -->
+<div class="modal-bg" id="selfie-modal" onclick="closeModal('selfie-modal')" style="cursor:zoom-out">
+  <img id="selfie-modal-img" src="" style="max-width:90vw;max-height:90vh;border-radius:14px;object-fit:contain">
+</div>
+
 <div class="modal-bg" id="user-modal">
   <div class="modal" style="max-width:280px">
     <div class="modal-title"><span id="um-name">Account</span><button class="modal-close" onclick="closeModal('user-modal')">×</button></div>
@@ -671,6 +734,7 @@ const maskAcct=n=>n?'XXXX'+String(n).slice(-4):'—';
 // ══════════════════════════════════════════════════════════
 let employees=[],currentUser=null,currentProfile=null,staffUser=null;
 let aY=new Date().getFullYear(),aM=new Date().getMonth()+1;
+let pY=new Date().getFullYear(),pM=new Date().getMonth()+1;
 let sY=new Date().getFullYear(),sM=new Date().getMonth()+1;
 let rY=new Date().getFullYear(),rM=new Date().getMonth()+1;
 let myY=new Date().getFullYear(),myM=new Date().getMonth()+1;
@@ -816,14 +880,14 @@ function setupForRole(){
   const payAllBtn=document.getElementById('pay-all-btn');if(payAllBtn)payAllBtn.style.display=isOwner?'inline-flex':'none';
   const addCard=document.getElementById('add-emp-card');if(addCard)addCard.style.display=isOwner?'block':'none';
   const uploadCard=document.getElementById('upload-card');if(uploadCard)uploadCard.style.display=isOwner?'block':'none';
-  if(isAdmin){gp('team');}else if(isStaff){gs('myslip');}else{showKiosk();}
+  if(isAdmin){gp('dashboard');}else if(isStaff){gs('myslip');}else{showKiosk();}
   if(isAdmin)loadAll();
 }
 
 // ══════════════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════════════
-const ADMIN_PAGES=['team','att','punches','advances','salary','slip','reports','managers','kiosk'];
+const ADMIN_PAGES=['dashboard','team','att','punches','advances','salary','slip','reports','managers','kiosk'];
 function gp(id){
   ADMIN_PAGES.forEach(p=>{const el=document.getElementById('sec-'+p);if(el)el.classList.toggle('on',p===id);});
   document.querySelectorAll('#admin-nav .snav').forEach(b=>{
@@ -831,8 +895,9 @@ function gp(id){
     if(pg)b.classList.toggle('on',pg===id);
   });
   document.querySelectorAll('#admin-bnav .bnav').forEach((b,i)=>{
-    b.classList.toggle('on',['team','att','punches','advances','salary','reports'][i]===id);
+    b.classList.toggle('on',['dashboard','team','att','punches','advances','salary'][i]===id);
   });
+  if(id==='dashboard')loadDashboard();
   if(id==='att')renderAtt();
   if(id==='salary')calcSalary();
   if(id==='punches')loadPunches();
@@ -893,6 +958,78 @@ async function loadAll(){
   const{data}=await sb.from('employees').select('*').eq('is_active',true).order('name');
   employees=data||[];
   renderEmpList();populateSels();renderTiles();
+}
+
+async function loadDashboard(){
+  const today=todayStr();
+  const now=new Date();
+  const monthStr=`${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+
+  // Fetch today's punches
+  const{data:todayPunches}=await sb.from('punches').select('*')
+    .eq('punch_date',today)
+    .order('punch_time',{ascending:true});
+  const tp=todayPunches||[];
+
+  // Figure out who is currently IN (last punch is 'in')
+  const statusMap={};
+  for(const p of tp){
+    statusMap[p.employee_id]=p.punch_type;
+  }
+  const punchedIn=employees.filter(e=>statusMap[e.id]==='in');
+  const notPunched=employees.filter(e=>!statusMap[e.id]);
+  const punchedOut=employees.filter(e=>statusMap[e.id]==='out');
+
+  // Metrics
+  document.getElementById('dash-metrics').innerHTML=`
+    <div class="mc"><div class="mc-l">Currently IN</div><div class="mc-v" style="color:var(--green)">${punchedIn.length}</div></div>
+    <div class="mc"><div class="mc-l">Punched OUT</div><div class="mc-v" style="color:var(--amber)">${punchedOut.length}</div></div>
+    <div class="mc"><div class="mc-l">Not yet punched</div><div class="mc-v" style="color:var(--red)">${notPunched.length}</div></div>
+    <div class="mc"><div class="mc-l">Total staff</div><div class="mc-v">${employees.length}</div></div>`;
+
+  // Punched IN list
+  document.getElementById('dash-in-count').textContent=punchedIn.length;
+  document.getElementById('dash-in-list').innerHTML=punchedIn.length
+    ?punchedIn.map((e,i)=>{
+      const lastPunch=tp.filter(p=>p.employee_id===e.id&&p.punch_type==='in').slice(-1)[0];
+      const hrs=calcDayResult(tp.filter(p=>p.employee_id===e.id),e.shift_end).hours;
+      return`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--bd)">
+        <div class="av" style="width:30px;height:30px;font-size:11px;background:${AVBG[i%6]};color:${AVTC[i%6]}">${initials(e.name)}</div>
+        <div style="flex:1"><div style="font-weight:500">${e.name}</div><div style="font-size:11px;color:var(--c2)">${e.role||''}</div></div>
+        <div style="text-align:right">
+          <span class="badge bg">IN ${lastPunch?.punch_time?.slice(0,5)||''}</span>
+          <div style="font-size:10px;color:var(--c2);margin-top:2px">${hrs.toFixed(1)}h today</div>
+        </div>
+      </div>`;
+    }).join('')
+    :'<div style="font-size:13px;color:var(--c3);padding:8px 0">No one clocked in yet</div>';
+
+  // Not punched list
+  document.getElementById('dash-out-count').textContent=notPunched.length;
+  document.getElementById('dash-out-list').innerHTML=notPunched.length
+    ?notPunched.map((e,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--bd)">
+        <div class="av" style="width:30px;height:30px;font-size:11px;background:${AVBG[i%6]};color:${AVTC[i%6]}">${initials(e.name)}</div>
+        <div style="flex:1"><div style="font-weight:500">${e.name}</div><div style="font-size:11px;color:var(--c2)">${e.role||''}</div></div>
+        <span class="badge br">Not punched</span>
+      </div>`).join('')
+    :'<div style="font-size:13px;color:var(--c3);padding:8px 0">All staff have punched in!</div>';
+
+  // Today's punch timeline
+  document.getElementById('dash-today-log').innerHTML=tp.length
+    ?`<div class="tbl-wrap"><table>
+        <thead><tr><th>Employee</th><th>Time</th><th>Type</th><th>Source</th></tr></thead>
+        <tbody>${[...tp].reverse().map(p=>{
+          const emp=employees.find(e=>e.id===p.employee_id);
+          return`<tr>
+            <td style="font-weight:500">${emp?.name||'—'}</td>
+            <td style="font-family:'DM Mono',monospace">${p.punch_time?.slice(0,5)}</td>
+            <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
+            <td><span class="badge bgr">${p.source}</span>${p.selfie_url?` <img src="${p.selfie_url}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;cursor:pointer;vertical-align:middle" onclick="openSelfie('${p.selfie_url}')" title="Click to enlarge">`:''}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`
+    :'<div style="font-size:13px;color:var(--c3)">No punches recorded today yet.</div>';
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1252,8 +1389,12 @@ async function renderAtt(){
       if(st==='P')P++;else if(st==='H')H++;else if(st==='A')A++;else if(st==='L')L++;else if(st==='LB')LB++;
       const cfg=SCFG[st]||SCFG[''];
       const dow=new Date(aY,aM-1,d).getDay();
-      chips+=`<button class="dchip" style="background:${cfg.bg};color:${cfg.tc}" onclick="cycleOvr('${emp.id}','${ds}','${st}',this)" title="${ds}\n${hours.toFixed(1)}h${autoOut?' (auto punch-out)':''}">
-        <span style="font-size:8px;opacity:0.55">${DOW[dow]}</span><span>${d}</span>
+      // Build punch time summary for tooltip and inline display
+      const dayPunchSummary=dp.map(p=>`${p.punch_type==='in'?'IN':'OUT'} ${p.punch_time?.slice(0,5)}`).join(' · ');
+      chips+=`<button class="dchip" style="background:${cfg.bg};color:${cfg.tc};position:relative;height:auto;min-height:44px;padding:3px 2px" onclick="cycleOvr('${emp.id}','${ds}','${st}',this)" title="${ds} · ${hours.toFixed(1)}h${autoOut?' (auto punch-out)':''}">
+        <span style="font-size:8px;opacity:0.55">${DOW[dow]}</span>
+        <span style="font-size:11px;font-weight:700">${d}</span>
+        ${dp.length?`<span style="font-size:8px;line-height:1.3;text-align:center;opacity:0.85">${dp.map(p=>(p.punch_type==='in'?'▲':'▼')+p.punch_time?.slice(0,5)).join('<br>')}</span>`:''}
         ${autoOut?'<div class="wdot"></div>':''}
       </button>`;
     }
@@ -1269,8 +1410,28 @@ async function renderAtt(){
         </div>
       </div>
       <div class="day-grid">${chips}</div>
+      <div id="att-detail-${emp.id}" style="margin-top:8px;font-size:11px;color:var(--c2)"></div>
     </div>`;
   }).join('');
+  // Add click handlers to show punch detail per day
+  setTimeout(()=>{
+    document.querySelectorAll('.dchip').forEach(btn=>{
+      btn.addEventListener('mouseenter',function(){
+        const title=this.getAttribute('title')||'';
+        const parts=title.split(' · ');
+        const empCard=this.closest('.att-card');
+        if(!empCard)return;
+        const detail=empCard.querySelector('[id^="att-detail-"]');
+        if(detail) detail.textContent=parts.slice(1).join(' · ')||'No punches';
+      });
+      btn.addEventListener('mouseleave',function(){
+        const empCard=this.closest('.att-card');
+        if(!empCard)return;
+        const detail=empCard.querySelector('[id^="att-detail-"]');
+        if(detail) detail.textContent='';
+      });
+    });
+  },100);
 }
 async function cycleOvr(empId,date,cur,btn){
   const idx=ATT_CYC.indexOf(cur);const next=ATT_CYC[(idx+1)%ATT_CYC.length];
@@ -1281,34 +1442,45 @@ async function cycleOvr(empId,date,cur,btn){
   btn.querySelector('.wdot')?.remove();
 }
 function chM(d){aM+=d;if(aM>12){aM=1;aY++;}if(aM<1){aM=12;aY--;}renderAtt();}
+function chPM(d){pM+=d;if(pM>12){pM=1;pY++;}if(pM<1){pM=12;pY--;}loadPunches();}
 
 // ══════════════════════════════════════════════════════════
 // PUNCHES
 // ══════════════════════════════════════════════════════════
 async function loadPunches(){
   const ms=`${aY}-${pad(aM)}`;
-  const lastDay=pad(getDIM(aY,aM));
   const d=document.getElementById('punch-list');
   d.innerHTML='<div class="empty">Loading…</div>';
-  // Fetch punches without join first, then match employee names from local array
-  const{data,error}=await sb.from('punches')
-    .select('*')
+  // Populate filter dropdown
+  const filterSel=document.getElementById('punch-filter-emp');
+  if(filterSel){
+    const curFilter=filterSel.value;
+    filterSel.innerHTML='<option value="">All employees</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+    if(curFilter)filterSel.value=curFilter;
+  }
+  let query=sb.from('punches').select('*')
     .gte('punch_date',ms+'-01')
-    .lte('punch_date',ms+'-'+lastDay)
+    .lte('punch_date',ms+'-'+pad(getDIM(pY,pM)))
     .order('punch_date',{ascending:false})
     .order('punch_time',{ascending:false});
-  if(error){d.innerHTML=`<div class="warn-box">Error loading punches: ${error.message}</div>`;return;}
+  const empFilter=filterSel?.value;
+  if(empFilter) query=query.eq('employee_id',empFilter);
+  const{data,error}=await query;
+  if(error){d.innerHTML=`<div class="warn-box">Error: ${error.message}</div>`;return;}
   const punches=data||[];
-  if(!punches.length){d.innerHTML=`<div class="empty">No punch records for ${MONTHS[aM-1]} ${aY}.</div>`;return;}
+  if(!punches.length){d.innerHTML=`<div class="empty">No punch records for ${MONTHS[pM-1]} ${pY}${empFilter?' for this employee':''}.</div>`;return;}
   d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
-    <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Time</th><th>Source</th><th></th></tr></thead>
+    <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Time</th><th>Source</th><th>Location</th><th></th></tr></thead>
     <tbody>${punches.map(p=>`<tr>
       <td style="font-weight:600">${employees.find(e=>e.id===p.employee_id)?.name||p.employee_id?.slice(0,8)||'—'}</td>
       <td>${p.punch_date?.slice(0,10)}</td>
       <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
       <td style="font-family:'DM Mono',monospace">${p.punch_time?.slice(0,5)}</td>
-      <td><span class="badge ${p.source==='admin'||p.source==='manager'?'bb':'bgr'}">${p.source}</span>${p.selfie_url?` <a href="${p.selfie_url}" target="_blank" style="font-size:11px;color:var(--blue)">selfie</a>`:''}</td>
-      <td><button class="btn btn-r btn-sm" onclick="removePunch('${p.id}')">×</button></td>
+      <td><span class="badge ${p.source==='admin'?'bb':p.source==='manager'?'bp':'bgr'}" title="${p.source==='admin'?'Admin edited punch':p.source==='manager'?'Manager edited punch':'Staff self-punch'}">${p.source==='admin'?'✎ admin':p.source==='manager'?'✎ manager':'staff'}</span>${p.note&&p.note.includes('Edited')?` <span class="badge" style="background:#fef3c7;color:#92400e;font-size:9px">${p.note}</span>`:''}${p.selfie_url?` <img src="${p.selfie_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;cursor:pointer;vertical-align:middle;margin-left:4px" onclick="openSelfie('${p.selfie_url}')" title="Click to enlarge">`:''}  </td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" onclick="editPunch('${p.id}','${p.employee_id}','${p.punch_date?.slice(0,10)}','${p.punch_time?.slice(0,5)}','${p.punch_type}')" style="margin-right:4px">Edit</button>
+        <button class="btn btn-r btn-sm" onclick="removePunch('${p.id}')">×</button>
+      </td>
     </tr>`).join('')}</tbody>
   </table></div></div>`;
 }
@@ -1316,13 +1488,51 @@ async function adminPunch(type){
   const empId=document.getElementById('p-emp').value,date=document.getElementById('p-date').value,time=document.getElementById('p-time').value;
   if(!empId||!date||!time){alert('Fill all fields');return;}
   const source=currentProfile?.role==='manager'?'manager':'admin';
-  await sb.from('punches').insert({employee_id:empId,punch_date:date,punch_time:time,punch_type:type,source});
+  if(editingPunchId){
+    // Update existing punch
+    await sb.from('punches').update({employee_id:empId,punch_date:date,punch_time:time,punch_type:type,source,note:`Edited by ${source} on ${todayStr()}`}).eq('id',editingPunchId);
+    cancelEditPunch();
+  } else {
+    await sb.from('punches').insert({employee_id:empId,punch_date:date,punch_time:time,punch_type:type,source});
+  }
   await loadPunches();
 }
 async function removePunch(id){
   if(!confirm('Delete this punch?'))return;
   await sb.from('punches').delete().eq('id',id);
   await loadPunches();
+}
+let editingPunchId=null;
+function editPunch(id,empId,date,time,type){
+  editingPunchId=id;
+  document.getElementById('p-emp').value=empId;
+  document.getElementById('p-date').value=date;
+  document.getElementById('p-time').value=time;
+  // Show edit info
+  const info=document.getElementById('punch-edit-info');
+  if(info)info.style.display='block';
+  const cancelBtn=document.getElementById('punch-cancel-btn');
+  if(cancelBtn)cancelBtn.style.display='inline-flex';
+  // Update buttons to show "Update IN" / "Update OUT"
+  const inBtn=document.getElementById('punch-in-btn');
+  const outBtn=document.getElementById('punch-out-btn');
+  if(inBtn){inBtn.textContent='Update as IN';inBtn.setAttribute('onclick',"adminPunch('in')");}
+  if(outBtn){outBtn.textContent='Update as OUT';outBtn.setAttribute('onclick',"adminPunch('out')");}
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function cancelEditPunch(){
+  editingPunchId=null;
+  document.getElementById('p-date').value=todayStr();
+  document.getElementById('p-time').value='';
+  document.getElementById('p-emp').value='';
+  const info=document.getElementById('punch-edit-info');
+  if(info)info.style.display='none';
+  const cancelBtn=document.getElementById('punch-cancel-btn');
+  if(cancelBtn)cancelBtn.style.display='none';
+  const inBtn=document.getElementById('punch-in-btn');
+  const outBtn=document.getElementById('punch-out-btn');
+  if(inBtn){inBtn.textContent='Punch IN';inBtn.setAttribute('onclick',"adminPunch('in')");}
+  if(outBtn){outBtn.textContent='Punch OUT';outBtn.setAttribute('onclick',"adminPunch('out')");}
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1336,30 +1546,65 @@ async function loadAdvances(){
   if(!adv.length){d.innerHTML='<div class="empty">No records this month.</div>';return;}
   d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
     <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th></th></tr></thead>
-    <tbody>${adv.map(a=>`<tr>
-      <td style="font-weight:600">${a.employees?.name||'—'}</td>
-      <td>${a.record_date?.slice(0,10)}</td>
-      <td><span class="badge ${a.record_type==='advance'?'ba':'br'}">${a.record_type}</span></td>
-      <td style="font-weight:600">${fmtINR(a.amount)}</td>
-      <td style="color:var(--c2)">${a.note||'—'}</td>
-      <td><button class="btn btn-r btn-sm" onclick="removeAdv('${a.id}')">×</button></td>
-    </tr>`).join('')}</tbody>
+    <tbody>${adv.map(a=>{
+      const empName=employees.find(e=>e.id===a.employee_id)?.name||'Unknown';
+      return`<tr>
+        <td style="font-weight:600">${empName}</td>
+        <td>${a.record_date?.slice(0,10)}</td>
+        <td><span class="badge ${a.record_type==='advance'?'ba':'br'}">${a.record_type}</span></td>
+        <td style="font-weight:600">${fmtINR(a.amount)}</td>
+        <td style="color:var(--c2)">${a.note||'—'}</td>
+        <td style="display:flex;gap:4px">
+          <button class="btn btn-sm" onclick="editAdv('${a.id}','${a.employee_id}','${a.record_date?.slice(0,10)}','${a.record_type}',${a.amount},'${(a.note||'').replace(/'/g,\"\")}')">Edit</button>
+          <button class="btn btn-r btn-sm" onclick="removeAdv('${a.id}')">×</button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
   </table></div></div>`;
 }
+
+async function removeAdv(id){if(!confirm('Delete?'))return;await sb.from('advances').delete().eq('id',id);await loadAdvances();}
+function editAdv(id,empId,date,type,amount,note){
+  // Pre-fill the form with existing values for editing
+  const empSel=document.getElementById('adv-emp');
+  if(empSel)empSel.value=empId;
+  const dateEl=document.getElementById('adv-date');
+  if(dateEl)dateEl.value=date?.slice(0,10)||'';
+  const typeEl=document.getElementById('adv-type');
+  if(typeEl)typeEl.value=type;
+  const amtEl=document.getElementById('adv-amt');
+  if(amtEl)amtEl.value=amount;
+  const noteEl=document.getElementById('adv-note');
+  if(noteEl)noteEl.value=note==='undefined'?'':note;
+  // Store editing id
+  window._editAdvId=id;
+  // Change button text
+  const btn=document.querySelector('[onclick="saveAdvance()"]');
+  if(btn){btn.textContent='Update record';btn.style.background='var(--blue)';btn.style.borderColor='var(--blue)';}
+  // Scroll to form
+  document.getElementById('sec-advances').scrollTop=0;
+  document.querySelector('#sec-advances .card').scrollIntoView({behavior:'smooth'});
+}
 async function saveAdvance(){
-  const empId=document.getElementById('adv-emp').value,date=document.getElementById('adv-date').value;
-  const type=document.getElementById('adv-type').value,amt=parseFloat(document.getElementById('adv-amt').value);
+  const empId=document.getElementById('adv-emp').value;
+  const date=document.getElementById('adv-date').value;
+  const type=document.getElementById('adv-type').value;
+  const amt=parseFloat(document.getElementById('adv-amt').value);
   const note=document.getElementById('adv-note').value.trim();
   if(!empId||!date||!amt){alert('Fill employee, date and amount');return;}
-  await sb.from('advances').insert({employee_id:empId,record_date:date,record_type:type,amount:amt,note:note||null,created_by:currentUser?.id||null});
+  if(window._editAdvId){
+    await sb.from('advances').update({employee_id:empId,record_date:date,record_type:type,amount:amt,note:note||null}).eq('id',window._editAdvId);
+    window._editAdvId=null;
+    const btn=document.querySelector('[onclick="saveAdvance()"]');
+    if(btn){btn.textContent='Save';btn.style.background='';btn.style.borderColor='';}
+  }else{
+    await sb.from('advances').insert({employee_id:empId,record_date:date,record_type:type,amount:amt,note:note||null,created_by:currentUser?.id||null});
+  }
   document.getElementById('adv-amt').value='';document.getElementById('adv-note').value='';
   await loadAdvances();
 }
-async function removeAdv(id){if(!confirm('Delete?'))return;await sb.from('advances').delete().eq('id',id);await loadAdvances();}
 
-// ══════════════════════════════════════════════════════════
-// SALARY ENGINE
-// ══════════════════════════════════════════════════════════
+
 function computeSlip(emp,y,m,dim,punches,overrides,advances){
   const perHr=emp.monthly_salary/(dim*emp.duty_hours);
   let P=0,H=0,A=0,L=0,LB=0,totH=0,otH=0,wd=0;
@@ -1877,7 +2122,13 @@ async function loadTodayLog(){
 }
 function startCam(){
   if(!navigator.mediaDevices?.getUserMedia)return;
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false}).then(s=>{camStream=s;document.getElementById('sv').srcObject=s;}).catch(()=>{});
+  // If we already have an active stream, reuse it
+  if(camStream&&camStream.active){
+    document.getElementById('sv').srcObject=camStream;return;
+  }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
+    .then(s=>{camStream=s;document.getElementById('sv').srcObject=s;})
+    .catch(()=>{});
 }
 function capSelfie(){
   const v=document.getElementById('sv'),c=document.getElementById('sc'),img=document.getElementById('si');
@@ -1890,6 +2141,18 @@ async function doPunch(type){
   const today=todayStr(),now=new Date();
   const time=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
   let selfieUrl=null;
+  // Capture GPS location
+  let locationNote=null;
+  try{
+    if(navigator.geolocation){
+      await new Promise((res)=>{
+        navigator.geolocation.getCurrentPosition(
+          pos=>{locationNote=`${pos.coords.latitude.toFixed(5)},${pos.coords.longitude.toFixed(5)}`;res();},
+          ()=>res(),{timeout:3000}
+        );
+      });
+    }
+  }catch(e){}
   const img=document.getElementById('si');
   if(img.style.display!=='none'&&img.src.startsWith('data:')){
     try{
@@ -1899,10 +2162,11 @@ async function doPunch(type){
       if(data){const{data:url}=sb.storage.from('selfies').getPublicUrl(fname);selfieUrl=url.publicUrl;}
     }catch(e){}
   }
-  await sb.from('punches').insert({employee_id:selEmp.id,punch_date:today,punch_time:time,punch_type:type,source:'staff',selfie_url:selfieUrl});
+  await sb.from('punches').insert({employee_id:selEmp.id,punch_date:today,punch_time:time,punch_type:type,source:'staff',selfie_url:selfieUrl,note:locationNote||null});
   document.getElementById('pmsg').textContent=type==='in'?`✓ Clocked IN at ${time}`:`✓ Clocked OUT at ${time}`;
   await loadTodayLog();
-  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  // For logged-in staff keep camera alive between punches
+  if(!staffUser&&camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
   // For walk-up kiosk (no logged-in staff), go back to tile screen after 2.5s
   // For logged-in staff, just clear the message and stay on punch screen
   if(staffUser){
@@ -1930,6 +2194,10 @@ const _n=new Date();
 const _pd=document.getElementById('p-date');if(_pd)_pd.value=todayStr();
 const _pt=document.getElementById('p-time');if(_pt)_pt.value=`${pad(_n.getHours())}:${pad(_n.getMinutes())}`;
 const _ad=document.getElementById('adv-date');if(_ad)_ad.value=todayStr();
+function openSelfie(url){
+  document.getElementById('selfie-modal-img').src=url;
+  openModal('selfie-modal');
+}
 </script>
 </body>
 </html>
