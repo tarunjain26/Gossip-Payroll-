@@ -1234,8 +1234,8 @@ async function renderAtt(){
   document.getElementById('att-ml').textContent=`${MONTHS[aM-1]} ${aY}`;
   const ms=`${aY}-${pad(aM)}`;
   const[pR,oR]=await Promise.all([
-    sb.from('punches').select('employee_id,punch_date,punch_time,punch_type').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
-    sb.from('attendance_overrides').select('employee_id,override_date,status').gte('override_date',ms+'-01').lte('override_date',ms+'-31')
+    sb.from('punches').select('employee_id,punch_date,punch_time,punch_type').gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('attendance_overrides').select('employee_id,override_date,status').gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM)))
   ]);
   const punches=pR.data||[],overrides=oR.data||[];
   if(!employees.length){document.getElementById('att-wrap').innerHTML='<div class="empty">No employees.</div>';return;}
@@ -1287,13 +1287,14 @@ function chM(d){aM+=d;if(aM>12){aM=1;aY++;}if(aM<1){aM=12;aY--;}renderAtt();}
 // ══════════════════════════════════════════════════════════
 async function loadPunches(){
   const ms=`${aY}-${pad(aM)}`;
+  const lastDay=pad(getDIM(aY,aM));
   const d=document.getElementById('punch-list');
   d.innerHTML='<div class="empty">Loading…</div>';
   // Fetch punches without join first, then match employee names from local array
   const{data,error}=await sb.from('punches')
     .select('*')
     .gte('punch_date',ms+'-01')
-    .lte('punch_date',ms+'-31')
+    .lte('punch_date',ms+'-'+lastDay)
     .order('punch_date',{ascending:false})
     .order('punch_time',{ascending:false});
   if(error){d.innerHTML=`<div class="warn-box">Error loading punches: ${error.message}</div>`;return;}
@@ -1329,7 +1330,7 @@ async function removePunch(id){
 // ══════════════════════════════════════════════════════════
 async function loadAdvances(){
   const ms=`${aY}-${pad(aM)}`;
-  const{data}=await sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-31').order('record_date',{ascending:false});
+  const{data}=await sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))).order('record_date',{ascending:false});
   const adv=data||[];
   const d=document.getElementById('adv-list');
   if(!adv.length){d.innerHTML='<div class="empty">No records this month.</div>';return;}
@@ -1392,9 +1393,9 @@ async function calcSalary(){
   if(!employees.length){document.getElementById('sal-cards').innerHTML='<div class="empty">No employees.</div>';return;}
   const ms=`${sY}-${pad(sM)}`;
   const[pR,oR,aR,payR]=await Promise.all([
-    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
-    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-31'),
-    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-31'),
+    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))),
     sb.from('salary_payments').select('*').eq('payment_year',sY).eq('payment_month',sM)
   ]);
   const dim=getDIM(sY,sM);
@@ -1501,9 +1502,9 @@ async function fetchSlipData(empId,y,m){
   const emp=employees.find(e=>e.id===empId);if(!emp)return null;
   const ms=`${y}-${pad(m)}`;const dim=getDIM(y,m);
   const[pR,oR,aR,payR]=await Promise.all([
-    sb.from('punches').select('*').eq('employee_id',empId).gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
-    sb.from('attendance_overrides').select('*').eq('employee_id',empId).gte('override_date',ms+'-01').lte('override_date',ms+'-31'),
-    sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',ms+'-01').lte('record_date',ms+'-31'),
+    sb.from('punches').select('*').eq('employee_id',empId).gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('attendance_overrides').select('*').eq('employee_id',empId).gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))),
     sb.from('salary_payments').select('*').eq('employee_id',empId).eq('payment_year',y).eq('payment_month',m)
   ]);
   return{...computeSlip(emp,y,m,dim,pR.data||[],oR.data||[],aR.data||[]),payment:payR.data?.[0]||null};
@@ -1592,9 +1593,9 @@ async function loadReports(){
   const ms=`${rY}-${pad(rM)}`;
   const dim=getDIM(rY,rM);
   const[pR,oR,aR,payR]=await Promise.all([
-    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
-    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-31'),
-    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-31'),
+    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))),
     sb.from('salary_payments').select('*').eq('payment_year',rY).eq('payment_month',rM)
   ]);
   const payments=payR.data||[];
@@ -1739,8 +1740,8 @@ async function renderMyAtt(){
   const emp=staffUser;if(!emp){document.getElementById('myatt-wrap').innerHTML='<div class="empty">Not logged in.</div>';return;}
   const ms=`${myY}-${pad(myM)}`;
   const[pR,oR]=await Promise.all([
-    sb.from('punches').select('*').eq('employee_id',emp.id).gte('punch_date',ms+'-01').lte('punch_date',ms+'-31').order('punch_date').order('punch_time'),
-    sb.from('attendance_overrides').select('*').eq('employee_id',emp.id).gte('override_date',ms+'-01').lte('override_date',ms+'-31')
+    sb.from('punches').select('*').eq('employee_id',emp.id).gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))).order('punch_date').order('punch_time'),
+    sb.from('attendance_overrides').select('*').eq('employee_id',emp.id).gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM)))
   ]);
   const punches=pR.data||[],overrides=oR.data||[],dim=getDIM(myY,myM);
   let rows='';
