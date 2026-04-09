@@ -1555,7 +1555,7 @@ async function loadAdvances(){
         <td style="font-weight:600">${fmtINR(a.amount)}</td>
         <td style="color:var(--c2)">${a.note||'—'}</td>
         <td style="display:flex;gap:4px">
-          <button class="btn btn-sm" onclick="editAdv('${a.id}','${a.employee_id}','${a.record_date?.slice(0,10)}','${a.record_type}',${a.amount},'${(a.note||'').replace(/'/g,\"\")}')">Edit</button>
+          <button class="btn btn-sm" onclick="editAdv('${a.id}','${a.employee_id}','${a.record_date?.slice(0,10)}','${a.record_type}',${a.amount},this)">Edit</button>
           <button class="btn btn-r btn-sm" onclick="removeAdv('${a.id}')">×</button>
         </td>
       </tr>`;
@@ -1564,8 +1564,9 @@ async function loadAdvances(){
 }
 
 async function removeAdv(id){if(!confirm('Delete?'))return;await sb.from('advances').delete().eq('id',id);await loadAdvances();}
-function editAdv(id,empId,date,type,amount,note){
-  // Pre-fill the form with existing values for editing
+function editAdv(id,empId,date,type,amount,btnEl){
+  const row=btnEl?.closest('tr');
+  const note=row?row.cells[4]?.textContent?.trim():'';
   const empSel=document.getElementById('adv-emp');
   if(empSel)empSel.value=empId;
   const dateEl=document.getElementById('adv-date');
@@ -1575,7 +1576,7 @@ function editAdv(id,empId,date,type,amount,note){
   const amtEl=document.getElementById('adv-amt');
   if(amtEl)amtEl.value=amount;
   const noteEl=document.getElementById('adv-note');
-  if(noteEl)noteEl.value=note==='undefined'?'':note;
+  if(noteEl)noteEl.value=note==='—'?'':note;
   // Store editing id
   window._editAdvId=id;
   // Change button text
