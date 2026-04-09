@@ -424,18 +424,7 @@ tr:hover td{background:var(--bg)}
           </div>
           <div class="card">
             <div class="card-title">Add / correct punch</div>
-            <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
-              <div class="field" style="flex:1;min-width:160px;margin-bottom:0">
-                <label>Filter by employee</label>
-                <select id="p-emp-filter" onchange="loadPunches()">
-                  <option value="">All employees</option>
-                </select>
-              </div>
-              <div style="font-size:12px;color:var(--c2);padding-top:16px">
-                <span class="badge bb">admin/manager</span> = corrected punch &nbsp;
-                <span class="badge bgr">staff</span> = self punch
-              </div>
-            </div>
+
             <div class="g4">
               <div class="field"><label>Employee</label><select id="p-emp"><option value="">Select</option></select></div>
               <div class="field"><label>Date</label><input id="p-date" type="date"></div>
@@ -448,13 +437,7 @@ tr:hover td{background:var(--bg)}
             </div>
             <div id="punch-edit-info" style="font-size:12px;color:var(--blue);margin-top:8px;display:none">Editing existing punch — update the fields above and click Punch IN or OUT to save</div>
           </div>
-          <div class="card" style="padding:12px 14px">
-            <div class="fl" style="gap:10px">
-              <div class="field" style="flex:1;margin:0"><label>Filter by employee</label>
-                <select id="punch-filter-emp" onchange="loadPunches()"><option value="">All employees</option></select>
-              </div>
-            </div>
-          </div>
+
           <div id="punch-list"></div>
         </div>
 
@@ -1125,7 +1108,7 @@ function renderEmpList(){
   </table></div></div>`;
 }
 function populateSels(){
-  ['p-emp','adv-emp','slip-emp'].forEach(id=>{
+  ['p-emp','punch-filter-emp','adv-emp','slip-emp'].forEach(id=>{
     const s=document.getElementById(id);if(!s)return;
     const v=s.value;s.innerHTML='<option value="">Select</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
     if(v)s.value=v;
@@ -1452,18 +1435,12 @@ async function loadPunches(){
   const d=document.getElementById('punch-list');
   d.innerHTML='<div class="empty">Loading…</div>';
   // Populate filter dropdown
-  const filterSel=document.getElementById('punch-filter-emp');
-  if(filterSel){
-    const curFilter=filterSel.value;
-    filterSel.innerHTML='<option value="">All employees</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
-    if(curFilter)filterSel.value=curFilter;
-  }
+  const empFilter=document.getElementById('punch-filter-emp')?.value||'';
   let query=sb.from('punches').select('*')
     .gte('punch_date',ms+'-01')
     .lte('punch_date',ms+'-'+pad(getDIM(pY,pM)))
     .order('punch_date',{ascending:false})
     .order('punch_time',{ascending:false});
-  const empFilter=filterSel?.value;
   if(empFilter) query=query.eq('employee_id',empFilter);
   const{data,error}=await query;
   if(error){d.innerHTML=`<div class="warn-box">Error: ${error.message}</div>`;return;}
