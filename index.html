@@ -362,8 +362,22 @@ tr:hover td{background:var(--bg)}
             <div class="g4">
               <div class="field"><label>Phone</label><input id="e-phone" type="tel" placeholder="98XXXXXXXX"></div>
               <div class="field"><label>Shift name</label><input id="e-shift" placeholder="Morning"></div>
+              <div class="field">
+                <label>Shift type</label>
+                <select id="e-shift-type" onchange="toggleShiftType()">
+                  <option value="regular">Regular (single block)</option>
+                  <option value="split_break">Break shift (one block with break)</option>
+                  <option value="split_blocks">Split shift (two separate blocks)</option>
+                </select>
+              </div>
+            </div>
+            <div class="g4">
               <div class="field"><label>Shift start</label><input id="e-sin" type="time" value="09:00"></div>
               <div class="field"><label>Shift end</label><input id="e-sout" type="time" value="19:00"></div>
+              <div class="field" id="e-break-start-wrap" style="display:none"><label>Break from</label><input id="e-break-start" type="time" value="13:00"></div>
+              <div class="field" id="e-break-end-wrap" style="display:none"><label>Break until</label><input id="e-break-end" type="time" value="14:00"></div>
+              <div class="field" id="e-sin2-wrap" style="display:none"><label>2nd block start</label><input id="e-sin2" type="time" value="17:00"></div>
+              <div class="field" id="e-sout2-wrap" style="display:none"><label>2nd block end</label><input id="e-sout2" type="time" value="21:00"></div>
             </div>
             <div class="g4">
               <div class="field"><label>Monthly salary ₹ *</label><input id="e-sal" type="number" placeholder="18000"></div>
@@ -908,6 +922,7 @@ function showKiosk(){
     selEmp=staffUser;
     document.getElementById('kpu-av').textContent=initials(staffUser.name);
     document.getElementById('kpu-nm').textContent=staffUser.name;
+    loadTodayLog();
     document.getElementById('kpu-clk').textContent='';
     showKioskStep('punch');
     loadTodayLog();
@@ -1023,7 +1038,10 @@ async function addEmployee(data=null){
   const emp=data||{
     name:g('e-name'),role:g('e-role')||null,employee_code:g('e-code')||null,
     phone:g('e-phone')||null,shift_name:g('e-shift')||null,
+    shift_type:g('e-shift-type')||'regular',
     shift_start:g('e-sin')||'09:00',shift_end:g('e-sout')||'19:00',
+    break_start:g('e-break-start')||null,break_end:g('e-break-end')||null,
+    shift2_start:g('e-sin2')||null,shift2_end:g('e-sout2')||null,
     duty_hours:parseFloat(g('e-dh'))||10,
     monthly_salary:parseFloat(g('e-sal'))||0,
     pin:g('e-pin'),
@@ -1046,6 +1064,9 @@ async function addEmployee(data=null){
 function clearEmpForm(){
   ['e-name','e-role','e-code','e-phone','e-shift','e-sal','e-pin','e-join','e-bname','e-bno','e-bifsc','e-bbank'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   ['e-sin','e-sout','e-dh'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=['09:00','19:00','10'][i];});
+  const st=document.getElementById('e-shift-type');if(st)st.value='regular';
+  ['e-break-start','e-break-end','e-sin2','e-sout2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  toggleShiftType();
 }
 async function removeEmp(id,name){
   if(!confirm(`Remove ${name}?`))return;
@@ -1063,7 +1084,8 @@ function viewEmpDetails(id){
       <div><span style="color:var(--c2)">Employee ID</span><br><strong>${emp.employee_code||'—'}</strong></div>
       <div><span style="color:var(--c2)">Phone</span><br><strong>${emp.phone||'—'}</strong></div>
       <div><span style="color:var(--c2)">Join date</span><br><strong>${emp.join_date||'—'}</strong></div>
-      <div><span style="color:var(--c2)">Shift</span><br><strong>${emp.shift_name||'—'} (${emp.shift_start?.slice(0,5)}–${emp.shift_end?.slice(0,5)})</strong></div>
+      <div><span style="color:var(--c2)">Shift</span><br><strong>${emp.shift_name||'—'}</strong><br>
+        <span style="font-size:11px;color:var(--c2)">${fmtShiftDisplay(emp)}</span></div>
       <div><span style="color:var(--c2)">Duty hours</span><br><strong>${emp.duty_hours}h/day</strong></div>
       <div><span style="color:var(--c2)">Monthly salary</span><br><strong>${fmtINR(emp.monthly_salary)}</strong></div>
       <div><span style="color:var(--c2)">Hourly rate</span><br><strong>₹${hr}/hr</strong></div>
@@ -1092,7 +1114,7 @@ function renderEmpList(){
           <div class="av" style="width:34px;height:34px;font-size:12px;background:${AVBG[i%6]};color:${AVTC[i%6]}">${initials(e.name)}</div>
           <div><div style="font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--c2)">${e.role||''}${e.employee_code?' · '+e.employee_code:''}</div></div>
         </div></td>
-        <td>${e.shift_name||'—'}<br><span style="font-size:11px;color:var(--c2)">${e.shift_start?.slice(0,5)||''}–${e.shift_end?.slice(0,5)||''}</span></td>
+        <td>${e.shift_name||'—'}<br><span style="font-size:11px;color:var(--c2)">${fmtShiftDisplay(e)}</span></td>
         <td>${e.duty_hours}h</td>
         <td>${fmtINR(e.monthly_salary)}</td>
         <td>₹${hr}/hr</td>
@@ -1106,6 +1128,22 @@ function renderEmpList(){
       </tr>`;
     }).join('')}</tbody>
   </table></div></div>`;
+}
+function fmtShiftDisplay(e){
+  if(!e)return'—';
+  const s=e.shift_start?.slice(0,5)||'',en=e.shift_end?.slice(0,5)||'';
+  if(e.shift_type==='split_break'&&e.break_start&&e.break_end)
+    return`${s}–${en} (break ${e.break_start.slice(0,5)}–${e.break_end.slice(0,5)})`;
+  if(e.shift_type==='split_blocks'&&e.shift2_start&&e.shift2_end)
+    return`${s}–${en} + ${e.shift2_start.slice(0,5)}–${e.shift2_end.slice(0,5)}`;
+  return`${s}–${en}`;
+}
+function toggleShiftType(){
+  const t=document.getElementById('e-shift-type')?.value||'regular';
+  document.getElementById('e-break-start-wrap').style.display=t==='split_break'?'':'none';
+  document.getElementById('e-break-end-wrap').style.display=t==='split_break'?'':'none';
+  document.getElementById('e-sin2-wrap').style.display=t==='split_blocks'?'':'none';
+  document.getElementById('e-sout2-wrap').style.display=t==='split_blocks'?'':'none';
 }
 function populateSels(){
   ['p-emp','punch-filter-emp','adv-emp','slip-emp'].forEach(id=>{
@@ -1332,7 +1370,7 @@ function parseJoinDate(d){
 // ══════════════════════════════════════════════════════════
 // AUTO PUNCH-OUT + HOURS CALC
 // ══════════════════════════════════════════════════════════
-function calcDayResult(punches,shiftEnd){
+function calcDayResult(punches,shiftEnd,referenceDate){
   const sorted=[...punches].sort((a,b)=>a.punch_time.localeCompare(b.punch_time));
   let total=0,lastIn=null,autoOut=false;
   for(const p of sorted){
@@ -1342,7 +1380,20 @@ function calcDayResult(punches,shiftEnd){
   }
   if(lastIn!==null&&shiftEnd){
     const endMin=toMin(shiftEnd.slice(0,5));
-    if(endMin>lastIn){total+=endMin-lastIn;autoOut=true;}
+    if(endMin>lastIn){
+      // For today: only auto punch-out after shift_end + 10 min grace
+      const today=todayStr();
+      const isToday=!referenceDate||referenceDate===today;
+      if(isToday){
+        const now=new Date();
+        const nowMin=now.getHours()*60+now.getMinutes();
+        if(nowMin>=endMin+10){total+=endMin-lastIn;autoOut=true;}
+        // else: shift not yet ended+grace, no auto punch-out yet
+      }else{
+        // Past day — always auto punch-out at shift_end
+        total+=endMin-lastIn;autoOut=true;
+      }
+    }
   }
   return{hours:parseFloat((total/60).toFixed(2)),autoOut};
 }
@@ -1366,7 +1417,7 @@ async function renderAtt(){
       const ds=`${aY}-${pad(aM)}-${pad(d)}`;
       const ovr=overrides.find(o=>o.employee_id===emp.id&&o.override_date?.slice(0,10)===ds);
       const dp=punches.filter(p=>p.employee_id===emp.id&&p.punch_date?.slice(0,10)===ds);
-      const{hours,autoOut}=calcDayResult(dp,emp.shift_end);
+      const{hours,autoOut}=calcDayResult(dp,emp.shift_end,ds);
       let st=ovr?ovr.status:'';
       if(!st&&hours>0){st=hours>=emp.duty_hours*0.8?'P':hours>=emp.duty_hours*0.4?'H':'P';}
       if(st==='P')P++;else if(st==='H')H++;else if(st==='A')A++;else if(st==='L')L++;else if(st==='LB')LB++;
@@ -1465,6 +1516,15 @@ async function adminPunch(type){
   const empId=document.getElementById('p-emp').value,date=document.getElementById('p-date').value,time=document.getElementById('p-time').value;
   if(!empId||!date||!time){alert('Fill all fields');return;}
   const source=currentProfile?.role==='manager'?'manager':'admin';
+  // Warn if adding duplicate IN (not when editing existing record)
+  if(!editingPunchId&&type==='in'){
+    const{data:existing}=await sb.from('punches').select('punch_type,punch_time').eq('employee_id',empId).eq('punch_date',date).order('punch_time');
+    const lastP=(existing||[]).slice(-1)[0];
+    if(lastP?.punch_type==='in'){
+      const emp=employees.find(e=>e.id===empId);
+      if(!confirm(`${emp?.name||'This employee'} is already clocked IN at ${lastP.punch_time?.slice(0,5)} on ${date}. Add another IN punch anyway?`))return;
+    }
+  }
   if(editingPunchId){
     // Update existing punch
     await sb.from('punches').update({employee_id:empId,punch_date:date,punch_time:time,punch_type:type,source,note:`Edited by ${source} on ${todayStr()}`}).eq('id',editingPunchId);
@@ -1590,7 +1650,7 @@ function computeSlip(emp,y,m,dim,punches,overrides,advances){
     const ds=`${y}-${pad(m)}-${pad(d)}`;
     const ovr=overrides.find(o=>o.employee_id===emp.id&&o.override_date?.slice(0,10)===ds);
     const dp=punches.filter(p=>p.employee_id===emp.id&&p.punch_date?.slice(0,10)===ds);
-    const{hours}=calcDayResult(dp,emp.shift_end);
+    const{hours}=calcDayResult(dp,emp.shift_end,ds);
     let st=ovr?ovr.status:'';
     if(!st&&hours>0){st=hours>=emp.duty_hours*0.8?'P':hours>=emp.duty_hours*0.4?'H':'P';}
     if(st==='P'){P++;totH+=hours;wd++;if(hours>emp.duty_hours)otH+=hours-emp.duty_hours;}
@@ -2093,10 +2153,27 @@ async function loadTodayLog(){
   if(!selEmp)return;
   const today=todayStr();
   const{data}=await sb.from('punches').select('*').eq('employee_id',selEmp.id).eq('punch_date',today).order('punch_time');
-  const{hours}=calcDayResult(data||[],selEmp.shift_end);
+  const{hours}=calcDayResult(data||[],selEmp.shift_end,todayStr());
   const d=document.getElementById('tdlog');
   d.innerHTML=(data&&data.length)?`<div style="font-size:11px;color:var(--c2);margin-bottom:6px">Today — ${hours.toFixed(1)}h so far</div>
     <div style="display:flex;flex-wrap:wrap;gap:5px">${data.map(p=>`<span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()} ${p.punch_time?.slice(0,5)}</span>`).join('')}</div>`:'';
+  // Disable IN button if already clocked in; disable OUT if not clocked in
+  const lastPunch=(data||[]).slice(-1)[0];
+  const alreadyIn=lastPunch?.punch_type==='in';
+  const inBtn=document.querySelector('#kiosk-punch button[onclick*="in"]');
+  const outBtn=document.querySelector('#kiosk-punch button[onclick*="out"]');
+  if(inBtn){
+    inBtn.disabled=alreadyIn;
+    inBtn.style.opacity=alreadyIn?'0.35':'1';
+    inBtn.style.cursor=alreadyIn?'not-allowed':'pointer';
+    inBtn.title=alreadyIn?'Already clocked IN — punch OUT first':'';
+  }
+  if(outBtn){
+    outBtn.disabled=!alreadyIn;
+    outBtn.style.opacity=!alreadyIn?'0.35':'1';
+    outBtn.style.cursor=!alreadyIn?'not-allowed':'pointer';
+    outBtn.title=!alreadyIn?'Not clocked in yet':'';
+  }
 }
 function startCam(){
   if(!navigator.mediaDevices?.getUserMedia)return;
@@ -2116,6 +2193,9 @@ function capSelfie(){
 }
 async function doPunch(type){
   if(!selEmp)return;
+  // Double-click / double-submit guard
+  const btn=type==='in'?document.querySelector('#kiosk-punch button[onclick*="in"]'):document.querySelector('#kiosk-punch button[onclick*="out"]');
+  if(btn&&btn.disabled){document.getElementById('pmsg').textContent=type==='in'?'Already clocked IN today':'Not clocked in yet';return;}
   const today=todayStr(),now=new Date();
   const time=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
   let selfieUrl=null;
