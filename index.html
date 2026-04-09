@@ -1287,14 +1287,22 @@ function chM(d){aM+=d;if(aM>12){aM=1;aY++;}if(aM<1){aM=12;aY--;}renderAtt();}
 // ══════════════════════════════════════════════════════════
 async function loadPunches(){
   const ms=`${aY}-${pad(aM)}`;
-  const{data}=await sb.from('punches').select('*,employees(name)').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31').order('punch_date',{ascending:false}).order('punch_time',{ascending:false});
-  const punches=data||[];
   const d=document.getElementById('punch-list');
-  if(!punches.length){d.innerHTML='<div class="empty">No punch records this month.</div>';return;}
+  d.innerHTML='<div class="empty">Loading…</div>';
+  // Fetch punches without join first, then match employee names from local array
+  const{data,error}=await sb.from('punches')
+    .select('*')
+    .gte('punch_date',ms+'-01')
+    .lte('punch_date',ms+'-31')
+    .order('punch_date',{ascending:false})
+    .order('punch_time',{ascending:false});
+  if(error){d.innerHTML=`<div class="warn-box">Error loading punches: ${error.message}</div>`;return;}
+  const punches=data||[];
+  if(!punches.length){d.innerHTML=`<div class="empty">No punch records for ${MONTHS[aM-1]} ${aY}.</div>`;return;}
   d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
     <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Time</th><th>Source</th><th></th></tr></thead>
     <tbody>${punches.map(p=>`<tr>
-      <td style="font-weight:600">${p.employees?.name||'—'}</td>
+      <td style="font-weight:600">${employees.find(e=>e.id===p.employee_id)?.name||p.employee_id?.slice(0,8)||'—'}</td>
       <td>${p.punch_date?.slice(0,10)}</td>
       <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
       <td style="font-family:'DM Mono',monospace">${p.punch_time?.slice(0,5)}</td>
@@ -1321,7 +1329,7 @@ async function removePunch(id){
 // ══════════════════════════════════════════════════════════
 async function loadAdvances(){
   const ms=`${aY}-${pad(aM)}`;
-  const{data}=await sb.from('advances').select('*,employees(name)').gte('record_date',ms+'-01').lte('record_date',ms+'-31').order('record_date',{ascending:false});
+  const{data}=await sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-31').order('record_date',{ascending:false});
   const adv=data||[];
   const d=document.getElementById('adv-list');
   if(!adv.length){d.innerHTML='<div class="empty">No records this month.</div>';return;}
@@ -1586,7 +1594,7 @@ async function loadReports(){
   const[pR,oR,aR,payR]=await Promise.all([
     sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-31'),
     sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-31'),
-    sb.from('advances').select('*,employees(name)').gte('record_date',ms+'-01').lte('record_date',ms+'-31'),
+    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-31'),
     sb.from('salary_payments').select('*').eq('payment_year',rY).eq('payment_month',rM)
   ]);
   const payments=payR.data||[];
@@ -1686,7 +1694,7 @@ function renderAdvReport(){
     <div class="card" style="padding:0"><div class="tbl-wrap"><table>
       <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Amount</th><th>Note</th></tr></thead>
       <tbody>${advances.map(a=>`<tr>
-        <td style="font-weight:600">${a.employees?.name||'—'}</td>
+        <td style="font-weight:600">${employees.find(e=>e.id===a.employee_id)?.name||'—'}</td>
         <td>${a.record_date?.slice(0,10)}</td>
         <td><span class="badge ${a.record_type==='advance'?'ba':'br'}">${a.record_type}</span></td>
         <td style="font-weight:600">${fmtINR(a.amount)}</td>
