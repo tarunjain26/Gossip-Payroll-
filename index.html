@@ -1023,7 +1023,7 @@ async function loadDashboard(){
             <td style="font-weight:500">${emp?.name||'—'}</td>
             <td style="font-family:'DM Mono',monospace">${p.punch_time?.slice(0,5)}</td>
             <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
-            <td><span class="badge bgr">${p.source}</span>${p.selfie_url?` <img src="${p.selfie_url}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;cursor:pointer;vertical-align:middle" onclick="openSelfie('${p.selfie_url}')" title="Click to enlarge">`:''}</td>
+            <td><span class="badge bgr">${p.source}</span>${p.selfie_url?` <img src="${p.selfie_url}" style="width:28px;height:28px;border-radius:4px;object-fit:cover;cursor:pointer;vertical-align:middle" onclick="openSelfie(this.src)" onerror="this.style.display='none'" title="Click to enlarge">`:''}</td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>`
@@ -1504,7 +1504,7 @@ async function loadPunches(){
       <td>${p.punch_date?.slice(0,10)}</td>
       <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
       <td style="font-family:'DM Mono',monospace">${p.punch_time?.slice(0,5)}</td>
-      <td><span class="badge ${p.source==='admin'?'bb':p.source==='manager'?'bp':'bgr'}" title="${p.source==='admin'?'Admin edited punch':p.source==='manager'?'Manager edited punch':'Staff self-punch'}">${p.source==='admin'?'✎ admin':p.source==='manager'?'✎ manager':'staff'}</span>${p.note&&p.note.includes('Edited')?` <span class="badge" style="background:#fef3c7;color:#92400e;font-size:9px">${p.note}</span>`:''}${p.selfie_url?` <img src="${p.selfie_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;cursor:pointer;vertical-align:middle;margin-left:4px" onclick="openSelfie('${p.selfie_url}')" title="Click to enlarge">`:''}  </td>
+      <td><span class="badge ${p.source==='admin'?'bb':p.source==='manager'?'bp':'bgr'}" title="${p.source==='admin'?'Admin edited punch':p.source==='manager'?'Manager edited punch':'Staff self-punch'}">${p.source==='admin'?'✎ admin':p.source==='manager'?'✎ manager':'staff'}</span>${p.note&&p.note.includes('Edited')?` <span class="badge" style="background:#fef3c7;color:#92400e;font-size:9px">${p.note}</span>`:''}${p.selfie_url?` <img src="${p.selfie_url}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;cursor:pointer;vertical-align:middle;margin-left:4px;border:1px solid var(--bd)" onclick="openSelfie(this.src)" onerror="this.style.display='none'" title="Click to enlarge">`:''}  </td>
       <td style="white-space:nowrap">
         <button class="btn btn-sm" onclick="editPunch('${p.id}','${p.employee_id}','${p.punch_date?.slice(0,10)}','${p.punch_time?.slice(0,5)}','${p.punch_type}')" style="margin-right:4px">Edit</button>
         <button class="btn btn-r btn-sm" onclick="removePunch('${p.id}')">×</button>
@@ -1902,8 +1902,9 @@ function renderSummaryReport(){
   slips.forEach(s=>{tNet+=s.netPay;tBase+=s.basePay;tOT+=s.otPay;tAdv+=s.totAdv;if(s.payment)tPaid+=s.netPay;});
   document.getElementById('report-summary').innerHTML=`
     <div class="mg" style="margin-bottom:14px">
+      <div class="mc"><div class="mc-l">Total staff</div><div class="mc-v">${slips.length}</div></div>
+      <div class="mc"><div class="mc-l">Committed salary</div><div class="mc-v" style="color:var(--blue)" title="Sum of monthly_salary for all active staff">${fmtINR(slips.reduce((s,x)=>s+(x.emp.monthly_salary||0),0))}</div></div>
       <div class="mc"><div class="mc-l">Total payable</div><div class="mc-v" style="color:var(--amber)">${fmtINR(tNet)}</div></div>
-      <div class="mc"><div class="mc-l">Base pay total</div><div class="mc-v">${fmtINR(tBase)}</div></div>
       <div class="mc"><div class="mc-l">OT paid</div><div class="mc-v" style="color:var(--green)">${fmtINR(tOT)}</div></div>
       <div class="mc"><div class="mc-l">Advances</div><div class="mc-v" style="color:var(--red)">${fmtINR(tAdv)}</div></div>
       <div class="mc"><div class="mc-l">Paid out</div><div class="mc-v" style="color:var(--teal)">${fmtINR(tPaid)}</div></div>
@@ -2064,13 +2065,28 @@ async function addManager(){
   const err=document.getElementById('mgr-err');
   if(!name||!email||!pass){err.textContent='All fields required';return;}
   if(pass.length<8){err.textContent='Password must be at least 8 characters';return;}
-  err.textContent='Creating…';
+  err.textContent='Creating account…';
+  // Save current owner session so we can restore it
+  const{data:ownerSession}=await sb.auth.getSession();
+  const ownerEmail=document.getElementById('login-email')?.value||'';
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{name,role:'manager'}}});
   if(error){err.textContent=error.message;return;}
-  if(data.user){await sb.from('user_profiles').insert({id:data.user.id,name,role:'manager'});}
+  if(!data.user){err.textContent='Could not create account. Try again.';return;}
+  // Insert profile row using the new user's ID
+  await sb.from('user_profiles').insert({id:data.user.id,name,role:'manager'});
+  // signUp auto-logs in as the new manager — sign back out and restore owner
+  await sb.auth.signOut();
+  if(ownerSession?.session){
+    // Re-authenticate as owner silently
+    const ownerPass=document.getElementById('login-pass')?.value||'';
+    if(ownerEmail&&ownerPass){
+      const{data:reauth}=await sb.auth.signInWithPassword({email:ownerEmail,password:ownerPass});
+      if(reauth?.user)await loadProfile(reauth.user);
+    }
+  }
   err.textContent='';
   ['mgr-name','mgr-email','mgr-pass'].forEach(i=>document.getElementById(i).value='');
-  alert(`Manager account created for ${name}. They can sign in at the login screen.`);
+  alert(`✓ Manager account created for ${name}.\n\nLogin: ${email}\nPassword: ${pass}\n\nShare these credentials with them directly — no email needed.`);
   await loadManagers();
 }
 async function loadManagers(){
@@ -2191,6 +2207,25 @@ function capSelfie(){
   c.getContext('2d').drawImage(v,0,0);
   img.src=c.toDataURL('image/jpeg',0.7);img.style.display='block';
 }
+
+function playChime(type){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const notes=type==='in'?[523.25,783.99]:[783.99,523.25]; // C5→G5 for IN, G5→C5 for OUT
+    notes.forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(freq,ctx.currentTime+i*0.18);
+      gain.gain.setValueAtTime(0,ctx.currentTime+i*0.18);
+      gain.gain.linearRampToValueAtTime(0.4,ctx.currentTime+i*0.18+0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.18+0.5);
+      osc.start(ctx.currentTime+i*0.18);
+      osc.stop(ctx.currentTime+i*0.18+0.55);
+    });
+  }catch(e){}
+}
 async function doPunch(type){
   if(!selEmp)return;
   // Double-click / double-submit guard
@@ -2221,6 +2256,7 @@ async function doPunch(type){
     }catch(e){}
   }
   await sb.from('punches').insert({employee_id:selEmp.id,punch_date:today,punch_time:time,punch_type:type,source:'staff',selfie_url:selfieUrl,note:locationNote||null});
+  playChime(type);
   document.getElementById('pmsg').textContent=type==='in'?`✓ Clocked IN at ${time}`:`✓ Clocked OUT at ${time}`;
   await loadTodayLog();
   // For logged-in staff keep camera alive between punches
@@ -2253,7 +2289,9 @@ const _pd=document.getElementById('p-date');if(_pd)_pd.value=todayStr();
 const _pt=document.getElementById('p-time');if(_pt)_pt.value=`${pad(_n.getHours())}:${pad(_n.getMinutes())}`;
 const _ad=document.getElementById('adv-date');if(_ad)_ad.value=todayStr();
 function openSelfie(url){
-  document.getElementById('selfie-modal-img').src=url;
+  const img=document.getElementById('selfie-modal-img');
+  img.src=''; // reset first to force reload
+  img.src=url;
   openModal('selfie-modal');
 }
 </script>
