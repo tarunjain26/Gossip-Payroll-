@@ -2080,8 +2080,16 @@ async function addManager(){
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{name,role:'manager'}}});
   if(error){err.textContent=error.message;return;}
   if(!data.user){err.textContent='Could not create account. Try again.';return;}
-  // Insert profile row using the new user's ID — must complete before signOut
-  const{error:profileErr}=await sb.from('user_profiles').insert({id:data.user.id,name,role:'manager'});
+  // Wait for Supabase auth to fully commit the new user before inserting profile
+  await new Promise(r=>setTimeout(r,1500));
+  // Retry insert up to 3 times in case auth row isn't ready yet
+  let profileErr=null;
+  for(let attempt=0;attempt<3;attempt++){
+    const{error:e}=await sb.from('user_profiles').insert({id:data.user.id,name,role:'manager'});
+    if(!e){profileErr=null;break;}
+    profileErr=e;
+    await new Promise(r=>setTimeout(r,1000));
+  }
   if(profileErr){err.textContent='Account created but profile save failed: '+profileErr.message;return;}
   // signUp auto-logs in as the new manager — sign back out and restore owner
   await sb.auth.signOut();
