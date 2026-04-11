@@ -787,6 +787,12 @@ async function doLogin(){
   const{data,error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){err.textContent=error.message;btn.disabled=false;btn.textContent='Sign in';return;}
   await loadProfile(data.user);
+  if(!currentProfile){
+    // Profile row missing — likely a setup issue. Show helpful message.
+    err.textContent='Account exists but no profile found. Ask the owner to re-create this manager account.';
+    btn.disabled=false;btn.textContent='Sign in';
+    await sb.auth.signOut();return;
+  }
   await loadAll();
   showApp();
 }
@@ -861,7 +867,9 @@ async function doLogout(){
 function setupForRole(){
   const role=currentProfile?.role||'staff';
   const isOwner=role==='owner',isManager=role==='manager';
-  const isAdmin=isOwner||isManager;
+  // If user is logged in via Supabase Auth but profile row is missing, treat as admin
+  // (prevents landing on kiosk screen after manager login)
+  const isAdmin=isOwner||isManager||(currentUser&&!staffUser);
   const isStaff=!currentUser&&staffUser!==null;
   document.getElementById('user-name').textContent=currentProfile?.name||staffUser?.name||'Staff';
   const dot=document.getElementById('user-dot');
@@ -2072,8 +2080,9 @@ async function addManager(){
   const{data,error}=await sb.auth.signUp({email,password:pass,options:{data:{name,role:'manager'}}});
   if(error){err.textContent=error.message;return;}
   if(!data.user){err.textContent='Could not create account. Try again.';return;}
-  // Insert profile row using the new user's ID
-  await sb.from('user_profiles').insert({id:data.user.id,name,role:'manager'});
+  // Insert profile row using the new user's ID — must complete before signOut
+  const{error:profileErr}=await sb.from('user_profiles').insert({id:data.user.id,name,role:'manager'});
+  if(profileErr){err.textContent='Account created but profile save failed: '+profileErr.message;return;}
   // signUp auto-logs in as the new manager — sign back out and restore owner
   await sb.auth.signOut();
   if(ownerSession?.session){
