@@ -2218,17 +2218,29 @@ async function loadTodayLog(){
 function startCam(){
   if(!navigator.mediaDevices?.getUserMedia)return;
   const vid=document.getElementById('sv');
-  // Reuse existing live stream
-  if(camStream&&camStream.active){vid.srcObject=camStream;return;}
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false})
-    .then(s=>{
-      camStream=s;
-      vid.srcObject=s;
-      // Mark stream ready once video is actually playing frames
-      vid.onloadedmetadata=()=>vid.play().catch(()=>{});
-      vid.onplaying=()=>{vid._ready=true;};
-    })
-    .catch(()=>{});
+  if(camStream&&camStream.active){
+    // Reuse stream — attach and wait for playing
+    if(vid.srcObject!==camStream){vid.srcObject=camStream;}
+    if(vid.readyState>=3&&vid.videoWidth>0)vid._ready=true;
+    else vid.onplaying=()=>{vid._ready=true;};
+    return;
+  }
+  // Try front camera first, fall back to any camera
+  const constraints=[
+    {video:{facingMode:'user'},audio:false},
+    {video:true,audio:false}
+  ];
+  (async()=>{
+    for(const con of constraints){
+      try{
+        const s=await navigator.mediaDevices.getUserMedia(con);
+        camStream=s;vid.srcObject=s;vid._ready=false;
+        vid.onplaying=()=>{vid._ready=true;};
+        await vid.play().catch(()=>{});
+        break;
+      }catch(e){}
+    }
+  })();
 }
 function capSelfie(){
   const v=document.getElementById('sv'),c=document.getElementById('sc'),img=document.getElementById('si');
@@ -2263,37 +2275,42 @@ async function doPunch(type){
   const today=todayStr(),now=new Date();
   const time=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
   let selfieUrl=null;
-  // Step 1: Capture selfie from video (do this first before any async delays)
+  // Capture selfie from live video
   const vid=document.getElementById('sv');
   const cvs=document.getElementById('sc');
   const img=document.getElementById('si');
-  if(vid&&cvs&&camStream&&camStream.active&&vid.videoWidth>0&&vid.readyState>=2){
-    try{
-      cvs.width=vid.videoWidth;cvs.height=vid.videoHeight;
-      cvs.getContext('2d').drawImage(vid,0,0);
-      const dataUrl=cvs.toDataURL('image/jpeg',0.85);
-      if(dataUrl&&dataUrl.startsWith('data:image/jpeg')){
-        img.src=dataUrl;img.style.display='block';
-      }
-    }catch(e){}
+  let capturedDataUrl=null;
+  if(camStream&&camStream.active&&vid&&cvs){
+    // If video not ready yet, wait up to 2s
+    if(!(vid.videoWidth>0&&vid.readyState>=2)){
+      await new Promise(res=>setTimeout(res,800));
+    }
+    if(vid.videoWidth>0){
+      try{
+        cvs.width=vid.videoWidth;cvs.height=vid.videoHeight;
+        cvs.getContext('2d').drawImage(vid,0,0);
+        capturedDataUrl=cvs.toDataURL('image/jpeg',0.85);
+        if(!capturedDataUrl.startsWith('data:image/jpeg'))capturedDataUrl=null;
+      }catch(e){capturedDataUrl=null;}
+    }
   }
-  // Step 2: Upload if we have a captured image
-  if(img&&img.src&&img.src.startsWith('data:image')){
+  // Upload captured selfie
+  if(capturedDataUrl){
+    if(img){img.src=capturedDataUrl;img.style.display='block';}
     try{
-      document.getElementById('pmsg').textContent='📸 Saving selfie…';
-      const blob=await(await fetch(img.src)).blob();
-      // Path inside bucket: {employeeId}/{date}-{time}.jpg  (no bucket name prefix)
+      document.getElementById('pmsg').textContent='📸 Saving…';
+      const blob=await(await fetch(capturedDataUrl)).blob();
       const fname=`${selEmp.id}/${today}-${time.replace(':','-')}.jpg`;
       const{data:upData,error:upErr}=await sb.storage.from('selfies').upload(fname,blob,{contentType:'image/jpeg',upsert:true});
       if(upErr){
-        document.getElementById('pmsg').textContent=`⚠ Selfie error: ${upErr.message}`;
-        await new Promise(r=>setTimeout(r,2500));
-      } else {
-        const{data:urlData}=sb.storage.from('selfies').getPublicUrl(fname);
-        selfieUrl=urlData.publicUrl;
+        document.getElementById('pmsg').textContent=`⚠ ${upErr.message}`;
+        await new Promise(r=>setTimeout(r,2000));
+      }else{
+        const{data:u}=sb.storage.from('selfies').getPublicUrl(fname);
+        selfieUrl=u.publicUrl;
       }
     }catch(e){
-      document.getElementById('pmsg').textContent=`⚠ Selfie error: ${e.message||'unknown'}`;
+      document.getElementById('pmsg').textContent=`⚠ ${e.message}`;
       await new Promise(r=>setTimeout(r,2000));
     }
   }
