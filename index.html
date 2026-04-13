@@ -2294,27 +2294,23 @@ async function doPunch(type){
       }catch(e){capturedDataUrl=null;}
     }
   }
-  // Upload captured selfie
+  // Upload selfie — failure never blocks the punch
   if(capturedDataUrl){
     if(img){img.src=capturedDataUrl;img.style.display='block';}
     try{
-      document.getElementById('pmsg').textContent='📸 Saving…';
       const blob=await(await fetch(capturedDataUrl)).blob();
       const fname=`${selEmp.id}/${today}-${time.replace(':','-')}.jpg`;
       const{data:upData,error:upErr}=await sb.storage.from('selfies').upload(fname,blob,{contentType:'image/jpeg',upsert:true});
-      if(upErr){
-        document.getElementById('pmsg').textContent=`⚠ ${upErr.message}`;
-        await new Promise(r=>setTimeout(r,2000));
-      }else{
+      if(!upErr){
         const{data:u}=sb.storage.from('selfies').getPublicUrl(fname);
         selfieUrl=u.publicUrl;
       }
-    }catch(e){
-      document.getElementById('pmsg').textContent=`⚠ ${e.message}`;
-      await new Promise(r=>setTimeout(r,2000));
-    }
+      // selfie failure is silent — punch always goes through
+    }catch(e){}
   }
-  await sb.from('punches').insert({employee_id:selEmp.id,punch_date:today,punch_time:time,punch_type:type,source:'staff',selfie_url:selfieUrl,note:locationNote||null});
+  // Always punch regardless of selfie result
+  const{error:punchErr}=await sb.from('punches').insert({employee_id:selEmp.id,punch_date:today,punch_time:time,punch_type:type,source:'staff',selfie_url:selfieUrl,note:null});
+  if(punchErr){document.getElementById('pmsg').textContent=`⚠ Punch failed: ${punchErr.message}`;return;}
   playChime(type);
   document.getElementById('pmsg').textContent=type==='in'?`✓ Clocked IN at ${time}`:`✓ Clocked OUT at ${time}`;
   await loadTodayLog();
