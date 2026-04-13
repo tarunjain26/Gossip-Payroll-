@@ -2217,12 +2217,17 @@ async function loadTodayLog(){
 }
 function startCam(){
   if(!navigator.mediaDevices?.getUserMedia)return;
-  // If we already have an active stream, reuse it
-  if(camStream&&camStream.active){
-    document.getElementById('sv').srcObject=camStream;return;
-  }
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false})
-    .then(s=>{camStream=s;document.getElementById('sv').srcObject=s;})
+  const vid=document.getElementById('sv');
+  // Reuse existing live stream
+  if(camStream&&camStream.active){vid.srcObject=camStream;return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false})
+    .then(s=>{
+      camStream=s;
+      vid.srcObject=s;
+      // Mark stream ready once video is actually playing frames
+      vid.onloadedmetadata=()=>vid.play().catch(()=>{});
+      vid.onplaying=()=>{vid._ready=true;};
+    })
     .catch(()=>{});
 }
 function capSelfie(){
@@ -2270,20 +2275,32 @@ async function doPunch(type){
       });
     }
   }catch(e){}
-  // Auto-capture selfie from video if not already captured
+  // Auto-capture selfie — wait for video to have live frames
   const vid=document.getElementById('sv');
   const cvs=document.getElementById('sc');
   const img=document.getElementById('si');
-  if(vid&&cvs&&(vid.videoWidth>0||vid.readyState>=2)){
-    try{
-      const w=vid.videoWidth||320,h=vid.videoHeight||240;
-      cvs.width=w;cvs.height=h;
-      cvs.getContext('2d').drawImage(vid,0,0,w,h);
-      const dataUrl=cvs.toDataURL('image/jpeg',0.75);
-      if(dataUrl&&dataUrl.length>100&&dataUrl!=='data:,'){
-        img.src=dataUrl;img.style.display='block';
-      }
-    }catch(e){}
+  if(vid&&cvs&&camStream&&camStream.active){
+    // Wait up to 3 seconds for video to be ready
+    if(!vid._ready){
+      await new Promise(res=>{
+        let waited=0;
+        const t=setInterval(()=>{
+          waited+=100;
+          if(vid.readyState>=3&&vid.videoWidth>0){vid._ready=true;clearInterval(t);res();}
+          else if(waited>=3000){clearInterval(t);res();}
+        },100);
+      });
+    }
+    if(vid._ready&&vid.videoWidth>0){
+      try{
+        cvs.width=vid.videoWidth;cvs.height=vid.videoHeight;
+        cvs.getContext('2d').drawImage(vid,0,0);
+        const dataUrl=cvs.toDataURL('image/jpeg',0.8);
+        if(dataUrl&&dataUrl.startsWith('data:image')){
+          img.src=dataUrl;img.style.display='block';
+        }
+      }catch(e){}
+    }
   }
   if(img&&img.src&&img.src.startsWith('data:image')){
     try{
