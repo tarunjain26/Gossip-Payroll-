@@ -2263,54 +2263,31 @@ async function doPunch(type){
   const today=todayStr(),now=new Date();
   const time=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
   let selfieUrl=null;
-  // Capture GPS location
-  let locationNote=null;
-  try{
-    if(navigator.geolocation){
-      await new Promise((res)=>{
-        navigator.geolocation.getCurrentPosition(
-          pos=>{locationNote=`${pos.coords.latitude.toFixed(5)},${pos.coords.longitude.toFixed(5)}`;res();},
-          ()=>res(),{timeout:3000}
-        );
-      });
-    }
-  }catch(e){}
-  // Auto-capture selfie — wait for video to have live frames
+  // Step 1: Capture selfie from video (do this first before any async delays)
   const vid=document.getElementById('sv');
   const cvs=document.getElementById('sc');
   const img=document.getElementById('si');
-  if(vid&&cvs&&camStream&&camStream.active){
-    // Wait up to 3 seconds for video to be ready
-    if(!vid._ready){
-      await new Promise(res=>{
-        let waited=0;
-        const t=setInterval(()=>{
-          waited+=100;
-          if(vid.readyState>=3&&vid.videoWidth>0){vid._ready=true;clearInterval(t);res();}
-          else if(waited>=3000){clearInterval(t);res();}
-        },100);
-      });
-    }
-    if(vid._ready&&vid.videoWidth>0){
-      try{
-        cvs.width=vid.videoWidth;cvs.height=vid.videoHeight;
-        cvs.getContext('2d').drawImage(vid,0,0);
-        const dataUrl=cvs.toDataURL('image/jpeg',0.8);
-        if(dataUrl&&dataUrl.startsWith('data:image')){
-          img.src=dataUrl;img.style.display='block';
-        }
-      }catch(e){}
-    }
+  if(vid&&cvs&&camStream&&camStream.active&&vid.videoWidth>0&&vid.readyState>=2){
+    try{
+      cvs.width=vid.videoWidth;cvs.height=vid.videoHeight;
+      cvs.getContext('2d').drawImage(vid,0,0);
+      const dataUrl=cvs.toDataURL('image/jpeg',0.85);
+      if(dataUrl&&dataUrl.startsWith('data:image/jpeg')){
+        img.src=dataUrl;img.style.display='block';
+      }
+    }catch(e){}
   }
+  // Step 2: Upload if we have a captured image
   if(img&&img.src&&img.src.startsWith('data:image')){
     try{
-      document.getElementById('pmsg').textContent='Uploading selfie…';
+      document.getElementById('pmsg').textContent='📸 Saving selfie…';
       const blob=await(await fetch(img.src)).blob();
-      const fname=`selfies/${selEmp.id}/${today}-${time.replace(':','-')}.jpg`;
+      // Path inside bucket: {employeeId}/{date}-{time}.jpg  (no bucket name prefix)
+      const fname=`${selEmp.id}/${today}-${time.replace(':','-')}.jpg`;
       const{data:upData,error:upErr}=await sb.storage.from('selfies').upload(fname,blob,{contentType:'image/jpeg',upsert:true});
       if(upErr){
         document.getElementById('pmsg').textContent=`⚠ Selfie error: ${upErr.message}`;
-        await new Promise(r=>setTimeout(r,2000));
+        await new Promise(r=>setTimeout(r,2500));
       } else {
         const{data:urlData}=sb.storage.from('selfies').getPublicUrl(fname);
         selfieUrl=urlData.publicUrl;
