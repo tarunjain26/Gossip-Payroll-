@@ -1407,9 +1407,62 @@ function calcDayResult(punches,shiftEnd,referenceDate){
 }
 
 // ══════════════════════════════════════════════════════════
+// WRITE MISSING AUTO PUNCH-OUTS TO DB
+// ══════════════════════════════════════════════════════════
+async function commitAutoPunchOuts(){
+  // Find all employees with an open IN punch (no matching OUT) on past days
+  // or today past shift_end+10, and insert a real OUT punch at shift_end
+  const today=todayStr();
+  const now=new Date();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  // Look back 60 days
+  const from=new Date();from.setDate(from.getDate()-60);
+  const fromStr=`${from.getFullYear()}-${pad(from.getMonth()+1)}-${pad(from.getDate())}`;
+  const{data:punches}=await sb.from('punches').select('*').gte('punch_date',fromStr).order('punch_time');
+  if(!punches?.length)return;
+  const toInsert=[];
+  for(const emp of employees){
+    if(!emp.shift_end)continue;
+    const endMin=toMin(emp.shift_end.slice(0,5));
+    // Group this employee's punches by date
+    const byDate={};
+    punches.filter(p=>p.employee_id===emp.id).forEach(p=>{
+      const d=p.punch_date?.slice(0,10);
+      if(!byDate[d])byDate[d]=[];
+      byDate[d].push(p);
+    });
+    for(const[ds,dp] of Object.entries(byDate)){
+      const sorted=dp.sort((a,b)=>a.punch_time.localeCompare(b.punch_time));
+      const lastP=sorted[sorted.length-1];
+      if(lastP.punch_type!=='in')continue; // already has OUT
+      // Check if auto punch-out should fire
+      const isPast=ds<today;
+      const isToday=ds===today;
+      const shouldFire=isPast||(isToday&&nowMin>=endMin+10);
+      if(!shouldFire)continue;
+      const lastInMin=toMin(lastP.punch_time.slice(0,5));
+      if(endMin<=lastInMin)continue; // shift_end before punch_in, skip
+      // No existing OUT punch — insert one at shift_end
+      toInsert.push({
+        employee_id:emp.id,
+        punch_date:ds,
+        punch_time:emp.shift_end.slice(0,5),
+        punch_type:'out',
+        source:'admin',
+        note:'Auto punch-out at shift end'
+      });
+    }
+  }
+  if(toInsert.length){
+    await sb.from('punches').upsert(toInsert,{onConflict:'employee_id,punch_date,punch_type,punch_time',ignoreDuplicates:true});
+  }
+}
+
+// ══════════════════════════════════════════════════════════
 // ATTENDANCE
 // ══════════════════════════════════════════════════════════
 async function renderAtt(){
+  await commitAutoPunchOuts();
   document.getElementById('att-ml').textContent=`${MONTHS[aM-1]} ${aY}`;
   const ms=`${aY}-${pad(aM)}`;
   const[pR,oR]=await Promise.all([
@@ -1497,6 +1550,7 @@ function chPM(d){pM+=d;if(pM>12){pM=1;pY++;}if(pM<1){pM=12;pY--;}loadPunches();}
 // PUNCHES
 // ══════════════════════════════════════════════════════════
 async function loadPunches(){
+  await commitAutoPunchOuts();
   const ms=`${aY}-${pad(aM)}`;
   const d=document.getElementById('punch-list');
   d.innerHTML='<div class="empty">Loading…</div>';
