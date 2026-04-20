@@ -404,6 +404,17 @@ tr:hover td{background:var(--bg)}
             </div>
             <div id="e-err" class="err-msg"></div>
           </div>
+          <div class="card" id="removed-emp-section" style="display:none">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+              <span>Removed employees</span>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('removed-emp-section').style.display='none'">Hide</button>
+            </div>
+            <div id="removed-emp-list"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:12px;font-weight:600;color:var(--c2);text-transform:uppercase;letter-spacing:0.05em">Current staff</div>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('removed-emp-section').style.display='block';loadRemovedEmps()">Show removed</button>
+          </div>
           <div id="emp-list"></div>
         </div>
 
@@ -966,10 +977,19 @@ function initMonthSelects(){
 // ══════════════════════════════════════════════════════════
 // LOAD ALL
 // ══════════════════════════════════════════════════════════
+let allEmployees=[]; // includes inactive — for name lookups only
 async function loadAll(){
-  const{data}=await sb.from('employees').select('*').eq('is_active',true).order('name');
-  employees=data||[];
+  const[activeR,allR]=await Promise.all([
+    sb.from('employees').select('*').eq('is_active',true).order('name'),
+    sb.from('employees').select('id,name,role,employee_code').order('name')
+  ]);
+  employees=activeR.data||[];
+  allEmployees=allR.data||[];
   renderEmpList();populateSels();renderTiles();
+}
+function empName(id){
+  const e=allEmployees.find(x=>x.id===id)||employees.find(x=>x.id===id);
+  return e?e.name:'Unknown';
 }
 
 async function loadDashboard(){
@@ -1083,9 +1103,30 @@ function clearEmpForm(){
   toggleShiftType();
 }
 async function removeEmp(id,name){
-  if(!confirm(`Remove ${name}?`))return;
+  if(!confirm(`Remove ${name} from active staff?\n\nTheir attendance, salary and punch history will be preserved. You can restore them anytime.`))return;
   await sb.from('employees').update({is_active:false}).eq('id',id);
   await loadAll();
+}
+async function restoreEmp(id,name){
+  if(!confirm(`Restore ${name} to active staff?`))return;
+  await sb.from('employees').update({is_active:true}).eq('id',id);
+  await loadAll();
+}
+async function loadRemovedEmps(){
+  const{data}=await sb.from('employees').select('*').eq('is_active',false).order('name');
+  const removed=data||[];
+  const wrap=document.getElementById('removed-emp-list');
+  if(!wrap)return;
+  if(!removed.length){wrap.innerHTML='<div class="empty">No removed employees.</div>';return;}
+  wrap.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
+    <thead><tr><th>Name</th><th>Role</th><th>Employee ID</th><th></th></tr></thead>
+    <tbody>${removed.map(e=>`<tr>
+      <td style="font-weight:600">${e.name}</td>
+      <td>${e.role||'—'}</td>
+      <td style="color:var(--c2)">${e.employee_code||'—'}</td>
+      <td><button class="btn btn-sm" style="color:var(--green);border-color:var(--green)" onclick="restoreEmp('${e.id}','${e.name}')">Restore</button></td>
+    </tr>`).join('')}</tbody>
+  </table></div></div>`;
 }
 function viewEmpDetails(id){
   const emp=employees.find(e=>e.id===id);if(!emp)return;
@@ -1575,7 +1616,7 @@ async function loadPunches(){
   d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
     <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Time</th><th>Source</th><th>Location</th><th></th></tr></thead>
     <tbody>${punches.map(p=>`<tr>
-      <td style="font-weight:600">${employees.find(e=>e.id===p.employee_id)?.name||p.employee_id?.slice(0,8)||'—'}</td>
+      <td style="font-weight:600">${(allEmployees.find(e=>e.id===p.employee_id)||employees.find(e=>e.id===p.employee_id))?.name||p.employee_id?.slice(0,8)||'—'}</td>
       <td>${p.punch_date?.slice(0,10)}</td>
       <td><span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()}</span></td>
       <td style="font-family:'DM Mono',monospace">${p.punch_time?.slice(0,5)}</td>
@@ -1659,7 +1700,7 @@ async function loadAdvances(){
   d.innerHTML=`<div class="card" style="padding:0"><div class="tbl-wrap"><table>
     <thead><tr><th>Employee</th><th>Date</th><th>Type</th><th>Amount</th><th>Note</th><th></th></tr></thead>
     <tbody>${adv.map(a=>{
-      const empName=employees.find(e=>e.id===a.employee_id)?.name||'Unknown';
+      const empName_=allEmployees.find(e=>e.id===a.employee_id)?.name||employees.find(e=>e.id===a.employee_id)?.name||'Unknown';
       return`<tr>
         <td style="font-weight:600">${empName}</td>
         <td>${a.record_date?.slice(0,10)}</td>
@@ -2082,7 +2123,7 @@ function exportReport(){
     fn=`attendance-${reportData.month}.csv`;
   } else {
     csv='Employee,Date,Type,Amount,Note\n';
-    reportData.advances.forEach(a=>{csv+=`"${a.employees?.name||''}","${a.record_date?.slice(0,10)}","${a.record_type}",${a.amount},"${a.note||''}"\n`;});
+    reportData.advances.forEach(a=>{csv+=`"${(allEmployees.find(e=>e.id===a.employee_id)||employees.find(e=>e.id===a.employee_id))?.name||''}","${a.record_date?.slice(0,10)}","${a.record_type}",${a.amount},"${a.note||''}"\n`;});
     fn=`advances-${reportData.month}.csv`;
   }
   const blob=new Blob([csv],{type:'text/csv'});
