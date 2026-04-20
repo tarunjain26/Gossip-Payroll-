@@ -197,8 +197,26 @@ tr:hover td{background:var(--bg)}
   .content{padding:0}
 }
 </style>
+<script>
+// Auto-update: check if a newer version of the app is available every 5 minutes
+// When a new deploy is detected, silently reload the page
+(function(){
+  function checkUpdate(){
+    fetch(window.location.href,{cache:'no-store',headers:{'X-Check':'version'}})
+      .then(r=>r.text()).then(html=>{
+        const m=html.match(/data-app-version="([^"]+)"/);
+        const cur=document.querySelector('[data-app-version]')?.dataset?.appVersion;
+        if(m&&cur&&m[1]!==cur){window.location.reload();}
+      }).catch(()=>{});
+  }
+  // Check on focus (when user switches back to the app)
+  window.addEventListener('focus',checkUpdate);
+  // Check every 5 minutes
+  setInterval(checkUpdate,5*60*1000);
+})();
+</script>
 </head>
-<body>
+<body data-app-version="1776682608">
 
 <!-- AUTH SCREEN -->
 <div id="screen-auth" class="auth-wrap">
