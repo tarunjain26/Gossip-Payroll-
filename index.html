@@ -1720,7 +1720,7 @@ async function loadAdvances(){
     <tbody>${adv.map(a=>{
       const empName_=allEmployees.find(e=>e.id===a.employee_id)?.name||employees.find(e=>e.id===a.employee_id)?.name||'Unknown';
       return`<tr>
-        <td style="font-weight:600">${empName}</td>
+        <td style="font-weight:600">${empName_}</td>
         <td>${a.record_date?.slice(0,10)}</td>
         <td><span class="badge ${a.record_type==='advance'?'ba':'br'}">${a.record_type}</span></td>
         <td style="font-weight:600">${fmtINR(a.amount)}</td>
