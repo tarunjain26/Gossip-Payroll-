@@ -201,18 +201,26 @@ tr:hover td{background:var(--bg)}
 // Auto-update: check if a newer version of the app is available every 5 minutes
 // When a new deploy is detected, silently reload the page
 (function(){
+  let lastInteraction=Date.now();
+  document.addEventListener('touchstart',()=>{lastInteraction=Date.now();});
+  document.addEventListener('click',()=>{lastInteraction=Date.now();});
+  let lastCheck=0;
   function checkUpdate(){
-    fetch(window.location.href,{cache:'no-store',headers:{'X-Check':'version'}})
+    const now=Date.now();
+    // Only check once per hour
+    if(now-lastCheck<60*60*1000)return;
+    // Only reload if user hasn't interacted in last 10 seconds (app just opened)
+    if(now-lastInteraction<10000)return;
+    lastCheck=now;
+    fetch(window.location.href,{cache:'no-store'})
       .then(r=>r.text()).then(html=>{
         const m=html.match(/data-app-version="([^"]+)"/);
         const cur=document.querySelector('[data-app-version]')?.dataset?.appVersion;
         if(m&&cur&&m[1]!==cur){window.location.reload();}
       }).catch(()=>{});
   }
-  // Check on focus (when user switches back to the app)
+  // Only check on focus, not on a timer — avoids mid-session reloads
   window.addEventListener('focus',checkUpdate);
-  // Check every 5 minutes
-  setInterval(checkUpdate,5*60*1000);
 })();
 </script>
 </head>
@@ -783,7 +791,7 @@ window.onload=async()=>{
   const{data:{session}}=await sb.auth.getSession();
   if(session){
     await loadProfile(session.user);
-    if(currentProfile){showApp();}
+    if(currentProfile){await loadAll();showApp();}
     else{await sb.auth.signOut();await loadEmployeesForAuth();showAuth();}
   }else{
     await loadEmployeesForAuth();showAuth();
@@ -920,6 +928,7 @@ function setupForRole(){
   const payAllBtn=document.getElementById('pay-all-btn');if(payAllBtn)payAllBtn.style.display=isOwner?'inline-flex':'none';
   const addCard=document.getElementById('add-emp-card');if(addCard)addCard.style.display=isOwner?'block':'none';
   const uploadCard=document.getElementById('upload-card');if(uploadCard)uploadCard.style.display=isOwner?'block':'none';
+
   if(isAdmin){gp('dashboard');}else if(isStaff){gs('myslip');}else{showKiosk();}
   if(isAdmin)loadAll();
 }
