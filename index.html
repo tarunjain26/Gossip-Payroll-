@@ -650,8 +650,8 @@ tr:hover td{background:var(--bg)}
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-                <button onclick="doPunch('in')" style="height:52px;font-size:15px;font-weight:600;border-radius:14px;border:none;background:var(--gbg);color:var(--green);cursor:pointer;font-family:inherit">Clock IN</button>
-                <button onclick="doPunch('out')" style="height:52px;font-size:15px;font-weight:600;border-radius:14px;border:none;background:var(--rbg);color:var(--red);cursor:pointer;font-family:inherit">Clock OUT</button>
+                <button id="kiosk-in-btn" onclick="doPunch('in')" style="height:52px;font-size:15px;font-weight:600;border-radius:14px;border:none;background:var(--gbg);color:var(--green);cursor:pointer;font-family:inherit">Clock IN</button>
+                <button id="kiosk-out-btn" onclick="doPunch('out')" style="height:52px;font-size:15px;font-weight:600;border-radius:14px;border:none;background:var(--rbg);color:var(--red);cursor:pointer;font-family:inherit;display:none">Clock OUT</button>
               </div>
               <div id="pmsg" style="text-align:center;font-size:13px;font-weight:600;min-height:20px"></div>
               <div id="tdlog" style="margin-top:12px"></div>
@@ -2271,23 +2271,13 @@ async function loadTodayLog(){
   const d=document.getElementById('tdlog');
   d.innerHTML=(data&&data.length)?`<div style="font-size:11px;color:var(--c2);margin-bottom:6px">Today — ${hours.toFixed(1)}h so far</div>
     <div style="display:flex;flex-wrap:wrap;gap:5px">${data.map(p=>`<span class="badge ${p.punch_type==='in'?'bg':'br'}">${p.punch_type.toUpperCase()} ${p.punch_time?.slice(0,5)}</span>`).join('')}</div>`:'';
-  // Disable IN button if already clocked in; disable OUT if not clocked in
+  // Show only the relevant button based on last punch state
   const lastPunch=(data||[]).slice(-1)[0];
   const alreadyIn=lastPunch?.punch_type==='in';
-  const inBtn=document.querySelector('#kiosk-punch button[onclick*="in"]');
-  const outBtn=document.querySelector('#kiosk-punch button[onclick*="out"]');
-  if(inBtn){
-    inBtn.disabled=alreadyIn;
-    inBtn.style.opacity=alreadyIn?'0.35':'1';
-    inBtn.style.cursor=alreadyIn?'not-allowed':'pointer';
-    inBtn.title=alreadyIn?'Already clocked IN — punch OUT first':'';
-  }
-  if(outBtn){
-    outBtn.disabled=!alreadyIn;
-    outBtn.style.opacity=!alreadyIn?'0.35':'1';
-    outBtn.style.cursor=!alreadyIn?'not-allowed':'pointer';
-    outBtn.title=!alreadyIn?'Not clocked in yet':'';
-  }
+  const inBtn=document.getElementById('kiosk-in-btn');
+  const outBtn=document.getElementById('kiosk-out-btn');
+  if(inBtn) inBtn.style.display=alreadyIn?'none':'block';
+  if(outBtn) outBtn.style.display=alreadyIn?'block':'none';
 }
 function startCam(){
   if(!navigator.mediaDevices?.getUserMedia)return;
@@ -2343,9 +2333,11 @@ function playChime(type){
 }
 async function doPunch(type){
   if(!selEmp)return;
-  // Double-click / double-submit guard
-  const btn=type==='in'?document.querySelector('#kiosk-punch button[onclick*="in"]'):document.querySelector('#kiosk-punch button[onclick*="out"]');
-  if(btn&&btn.disabled){document.getElementById('pmsg').textContent=type==='in'?'Already clocked IN today':'Not clocked in yet';return;}
+  // Guard against double-tap — button should be hidden but check anyway
+  const inBtn2=document.getElementById('kiosk-in-btn');
+  const outBtn2=document.getElementById('kiosk-out-btn');
+  if(type==='in'&&inBtn2?.style.display==='none')return;
+  if(type==='out'&&outBtn2?.style.display==='none')return;
   const today=todayStr(),now=new Date();
   const time=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
   let selfieUrl=null;
