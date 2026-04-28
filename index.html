@@ -1527,7 +1527,9 @@ async function commitAutoPunchOuts(){
     }
   }
   if(toInsert.length){
-    await sb.from('punches').upsert(toInsert,{onConflict:'employee_id,punch_date,punch_type,punch_time',ignoreDuplicates:true});
+    try{
+      await sb.from('punches').insert(toInsert);
+    }catch(e){} // ignore duplicate errors
   }
 }
 
@@ -1535,7 +1537,7 @@ async function commitAutoPunchOuts(){
 // ATTENDANCE
 // ══════════════════════════════════════════════════════════
 async function renderAtt(){
-  await commitAutoPunchOuts();
+  commitAutoPunchOuts().catch(()=>{}); // run in background, don't block render
   document.getElementById('att-ml').textContent=`${MONTHS[aM-1]} ${aY}`;
   const ms=`${aY}-${pad(aM)}`;
   const[pR,oR]=await Promise.all([
@@ -1623,7 +1625,7 @@ function chPM(d){pM+=d;if(pM>12){pM=1;pY++;}if(pM<1){pM=12;pY--;}loadPunches();}
 // PUNCHES
 // ══════════════════════════════════════════════════════════
 async function loadPunches(){
-  await commitAutoPunchOuts();
+  commitAutoPunchOuts().catch(()=>{}); // background
   const ms=`${aY}-${pad(aM)}`;
   const d=document.getElementById('punch-list');
   d.innerHTML='<div class="empty">Loading…</div>';
