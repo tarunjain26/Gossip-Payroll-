@@ -1764,15 +1764,28 @@ async function calcSalary(){
   document.getElementById('sal-ml').textContent=`${MONTHS[sM-1]} ${sY}`;
   if(!employees.length){document.getElementById('sal-cards').innerHTML='<div class="empty">No employees.</div>';return;}
   const ms=`${sY}-${pad(sM)}`;
-  const[pR,oR,aR,payR]=await Promise.all([
-    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('salary_payments').select('*').eq('payment_year',sY).eq('payment_month',sM)
+  // Next month (for carry-forward advances)
+  const nextM=sM===12?1:sM+1, nextY=sM===12?sY+1:sY;
+  const nms=`${nextY}-${pad(nextM)}`;
+  const[pR,oR,aR,payR,nextAdvR,nextPayR]=await Promise.all([
+    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(sY,sM))).limit(5000),
+    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(sY,sM))),
+    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(sY,sM))),
+    sb.from('salary_payments').select('*').eq('payment_year',sY).eq('payment_month',sM),
+    // Fetch next month's advances from 1st–10th
+    sb.from('advances').select('*').gte('record_date',nms+'-01').lte('record_date',nms+'-10'),
+    // Check if next month salary is paid (shouldn't be, but just in case)
+    sb.from('salary_payments').select('*').eq('payment_year',nextY).eq('payment_month',nextM)
   ]);
   const dim=getDIM(sY,sM);
   const payments=payR.data||[];
-  salData=employees.map(emp=>({...computeSlip(emp,sY,sM,dim,pR.data||[],oR.data||[],aR.data||[]),payment:payments.find(p=>p.employee_id===emp.id)||null}));
+  // Include next month's advances only for employees whose current month salary is NOT yet paid
+  const nextAdvances=nextAdvR.data||[];
+  const allAdvances=[...(aR.data||[]),...nextAdvances.filter(a=>{
+    const empPayment=payments.find(p=>p.employee_id===a.employee_id);
+    return !empPayment; // only include if this employee's salary not yet paid
+  })];
+  salData=employees.map(emp=>({...computeSlip(emp,sY,sM,dim,pR.data||[],oR.data||[],allAdvances),payment:payments.find(p=>p.employee_id===emp.id)||null}));
   let tN=0,tO=0,tA=0,tPaid=0;
   salData.forEach(s=>{tN+=s.netPay;tO+=s.otPay;tA+=s.totAdv;if(s.payment)tPaid+=s.netPay;});
   document.getElementById('sal-metrics').innerHTML=`
@@ -1871,15 +1884,21 @@ async function confirmPay(){
 // SALARY SLIP VIEW
 // ══════════════════════════════════════════════════════════
 async function fetchSlipData(empId,y,m){
-  const emp=employees.find(e=>e.id===empId);if(!emp)return null;
+  const emp=employees.find(e=>e.id===empId)||allEmployees.find(e=>e.id===empId);if(!emp)return null;
   const ms=`${y}-${pad(m)}`;const dim=getDIM(y,m);
-  const[pR,oR,aR,payR]=await Promise.all([
-    sb.from('punches').select('*').eq('employee_id',empId).gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('attendance_overrides').select('*').eq('employee_id',empId).gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('salary_payments').select('*').eq('employee_id',empId).eq('payment_year',y).eq('payment_month',m)
+  const nextM=m===12?1:m+1,nextY=m===12?y+1:y;
+  const nms=`${nextY}-${pad(nextM)}`;
+  const[pR,oR,aR,payR,nextAdvR]=await Promise.all([
+    sb.from('punches').select('*').eq('employee_id',empId).gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(dim)),
+    sb.from('attendance_overrides').select('*').eq('employee_id',empId).gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(dim)),
+    sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(dim)),
+    sb.from('salary_payments').select('*').eq('employee_id',empId).eq('payment_year',y).eq('payment_month',m),
+    sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',nms+'-01').lte('record_date',nms+'-10')
   ]);
-  return{...computeSlip(emp,y,m,dim,pR.data||[],oR.data||[],aR.data||[]),payment:payR.data?.[0]||null};
+  const isPaid=!!(payR.data?.[0]);
+  // Include next month's advances (1–10) only if current month salary not yet paid
+  const allAdv=[...(aR.data||[]),...(!isPaid?nextAdvR.data||[]:[])];
+  return{...computeSlip(emp,y,m,dim,pR.data||[],oR.data||[],allAdv),payment:payR.data?.[0]||null};
 }
 
 async function viewSlip(targetId){
