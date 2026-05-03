@@ -1850,7 +1850,7 @@ function slipBreakdownHTML(s){
   return`<div class="sr"><span>Base pay (${s.totH}h × ₹${s.perHr}/hr)</span><span>${fmtINR(s.basePay)}</span></div>
     ${s.plPay>0?`<div class="sr pos"><span>Paid leave (${s.paidPL}d × ${s.emp.duty_hours}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.plPay)}</span></div>`:''}
     ${s.otH>0?`<div class="sr" style="color:var(--c2);font-size:12px"><span>↳ incl. overtime (${s.otH}h already in base pay)</span><span>${fmtINR(s.otPay)}</span></div>`:''}
-    ${s.lbBonus>0?`<div class="sr pu"><span>Leave bonus (${s.LB}d × ${s.emp.duty_hours}h × 50%)</span><span>+${fmtINR(s.lbBonus)}</span></div>`:''}
+    ${s.lbBonus>0?`<div class="sr pu"><span>Leave bonus (${s.unusedPL} unused PL × ${s.emp.duty_hours}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.lbBonus)}</span></div>`:''}
     ${s.unpaidDed>0?`<div class="sr neg"><span>Unpaid leave (${s.unpaidL}d)</span><span>−${fmtINR(s.unpaidDed)}</span></div>`:''}
     ${s.totAdv>0?`<div class="sr neg"><span>Advance recovered</span><span>−${fmtINR(s.totAdv)}</span></div>`:''}
     ${s.totDed>0?`<div class="sr neg"><span>Other deductions</span><span>−${fmtINR(s.totDed)}</span></div>`:''}
@@ -1972,7 +1972,7 @@ function buildSlipHTML(s,y,m,staffView=false){
       <span>Half days: <strong style="color:var(--c1)">${s.H}d</strong></span>
       <span>Earned PL: <strong style="color:var(--c1)">${s.earnedPL}d (1 per 6d)</strong></span>
       <span>PL: <strong style="color:var(--c1)">${s.paidPL}d paid, ${s.unpaidL}d unpaid</strong></span>
-      <span>Leave bonus: <strong style="color:var(--c1)">${s.LB}d</strong></span>
+      <span>Leave bonus: <strong style="color:var(--c1)">${s.unusedPL||0}d unused PL</strong></span>
       <span>Absent/Unmarked: <strong style="color:var(--c1)">${s.A}d</strong></span>
     </div>
     ${s.emp.bank_account_no?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:14px;color:var(--c2);padding:10px;background:var(--gbg);border-radius:8px">
