@@ -425,13 +425,16 @@ tr:hover td{background:var(--bg)}
 
         <!-- ATTENDANCE -->
         <div id="sec-att" class="sec">
-          <div class="fl" style="margin-bottom:16px;gap:12px;flex-wrap:wrap">
+          <div class="fl" style="margin-bottom:12px;gap:10px;flex-wrap:wrap;align-items:center">
             <div class="page-title" style="margin:0">Attendance</div>
             <div class="month-nav">
               <button class="mnb" onclick="chM(-1)">‹</button>
               <div class="mnl" id="att-ml"></div>
               <button class="mnb" onclick="chM(1)">›</button>
             </div>
+            <select id="att-emp-filter" onchange="renderAtt()" style="height:38px;font-size:13px;border:1px solid var(--bd2);border-radius:10px;padding:0 10px;background:#fff;color:var(--c1)">
+              <option value="">All employees</option>
+            </select>
           </div>
           <div class="fl" style="margin-bottom:12px;gap:6px;font-size:11px;flex-wrap:wrap">
             <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:var(--gbg);display:inline-block"></span>Present</span>
@@ -447,14 +450,16 @@ tr:hover td{background:var(--bg)}
 
         <!-- PUNCHES -->
         <div id="sec-punches" class="sec">
-          <div class="fl" style="margin-bottom:16px;gap:10px;flex-wrap:wrap">
-            <div class="page-title" style="margin:0">Punch log</div>
-            <div class="month-nav">
-              <button class="mnb" onclick="chPM(-1)">‹</button>
-              <div class="mnl" id="punch-ml"></div>
-              <button class="mnb" onclick="chPM(1)">›</button>
+          <div style="margin-bottom:16px">
+            <div class="fl" style="gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+              <div class="page-title" style="margin:0">Punch log</div>
+              <div class="month-nav">
+                <button class="mnb" onclick="chPM(-1)">‹</button>
+                <div class="mnl" id="punch-ml"></div>
+                <button class="mnb" onclick="chPM(1)">›</button>
+              </div>
             </div>
-            <select id="punch-filter-emp" onchange="loadPunches()" style="height:32px;font-size:12px;width:auto;min-width:140px">
+            <select id="punch-filter-emp" onchange="loadPunches()" style="width:100%;max-width:320px;height:40px;font-size:13px;border:1px solid var(--bd2);border-radius:10px;padding:0 10px;background:#fff;color:var(--c1)">
               <option value="">All employees</option>
             </select>
           </div>
@@ -1227,7 +1232,7 @@ function toggleShiftType(){
   document.getElementById('e-sout2-wrap').style.display=t==='split_blocks'?'':'none';
 }
 function populateSels(){
-  ['p-emp','punch-filter-emp','adv-emp','slip-emp'].forEach(id=>{
+  ['p-emp','punch-filter-emp','att-emp-filter','adv-emp','slip-emp'].forEach(id=>{
     const s=document.getElementById(id);if(!s)return;
     const v=s.value;s.innerHTML='<option value="">Select</option>'+employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
     if(v)s.value=v;
@@ -1493,7 +1498,9 @@ async function renderAtt(){
   const punches=pR.data||[],overrides=oR.data||[];
   if(!employees.length){document.getElementById('att-wrap').innerHTML='<div class="empty">No employees.</div>';return;}
   const dim=getDIM(aY,aM);
-  document.getElementById('att-wrap').innerHTML=employees.map((emp,ri)=>{
+  const attEmpFilter=document.getElementById('att-emp-filter')?.value||'';
+  const filteredEmps=attEmpFilter?employees.filter(e=>e.id===attEmpFilter):employees;
+  document.getElementById('att-wrap').innerHTML=filteredEmps.map((emp,ri)=>{
     let P=0,H=0,A=0,L=0,LB=0,chips='';
     for(let d=1;d<=dim;d++){
       const ds=`${aY}-${pad(aM)}-${pad(d)}`;
@@ -1580,7 +1587,8 @@ async function loadPunches(){
     .gte('punch_date',ms+'-01')
     .lte('punch_date',ms+'-'+pad(getDIM(pY,pM)))
     .order('punch_date',{ascending:false})
-    .order('punch_time',{ascending:false});
+    .order('punch_time',{ascending:false})
+    .limit(5000);
   if(empFilter) query=query.eq('employee_id',empFilter);
   const{data,error}=await query;
   if(error){d.innerHTML=`<div class="warn-box">Error: ${error.message}</div>`;return;}
@@ -1744,20 +1752,39 @@ function computeSlip(emp,y,m,dim,punches,overrides,advances){
     if(!st&&hours>0){st=hours>=emp.duty_hours*0.8?'P':hours>=emp.duty_hours*0.4?'H':'P';}
     if(st==='P'){P++;totH+=hours;wd++;if(hours>emp.duty_hours)otH+=hours-emp.duty_hours;}
     else if(st==='H'){H++;totH+=hours;wd+=0.5;}
-    else if(st==='A')A++;else if(st==='L')L++;
+    else if(st==='A')A++;
+    else if(st==='L')L++;   // Paid leave taken (marked in attendance)
     else if(st==='LB'){LB++;totH+=hours;wd++;if(hours>emp.duty_hours)otH+=hours-emp.duty_hours;}
     else A++;
   }
   const r2=n=>Math.round(n*100)/100;
-  const earnedPL=Math.floor(wd/6),paidPL=Math.min(L,earnedPL),unpaidL=Math.max(0,L-earnedPL);
+
+  // PL earned: 1 per 6 working days, max 4 per month
+  const earnedPL=Math.min(4,Math.floor(wd/6));
+  // PL actually taken (marked L in attendance)
+  const paidPL=Math.min(L,earnedPL);
+  // Unpaid leaves = leaves taken beyond earned PL
+  const unpaidL=Math.max(0,L-earnedPL);
+  // Unused PL = earned but not taken → paid out as Leave Bonus
+  const unusedPL=Math.max(0,earnedPL-paidPL);
+  // LB = unused PL days × full day salary (duty_hours × perHr)
+  const lbBonus=r2(unusedPL*emp.duty_hours*perHr);
+
   const empAdv=advances.filter(a=>a.employee_id===emp.id);
-  const totAdv=empAdv.filter(a=>a.record_type==='advance').reduce((s,a)=>s+parseFloat(a.amount),0);
-  const totDed=empAdv.filter(a=>a.record_type==='deduction').reduce((s,a)=>s+parseFloat(a.amount),0);
-  const basePay=r2(totH*perHr),plPay=r2(paidPL*emp.duty_hours*perHr);
-  const otPay=r2(otH*perHr),lbBonus=r2(LB*emp.duty_hours*perHr*0.5);
+  const totAdv=empAdv.filter(a=>a.record_type==='advance').reduce((s,a)=>s+parseFloat(a.amount||0),0);
+  const totDed=empAdv.filter(a=>a.record_type==='deduction').reduce((s,a)=>s+parseFloat(a.amount||0),0);
+  // Base pay = actual hours worked × per hour rate
+  const basePay=r2(totH*perHr);
+  // PL pay = paid leave days taken × duty hours × per hour rate
+  const plPay=r2(paidPL*emp.duty_hours*perHr);
+  // OT = overtime hours × per hour rate
+  const otPay=r2(otH*perHr);
+  // Unpaid leave deduction
   const unpaidDed=r2(unpaidL*emp.duty_hours*perHr);
-  const netPay=r2(Math.max(0,basePay+plPay+otPay+lbBonus-unpaidDed-totAdv-totDed));
-  return{emp,y,m,dim,perHr:r2(perHr),P,H,A,L,LB,totH:r2(totH),otH:r2(otH),earnedPL,paidPL,unpaidL,wd:r2(wd),basePay,plPay,otPay,lbBonus,unpaidDed,totAdv:r2(totAdv),totDed:r2(totDed),netPay,empAdv};
+  // Net = base + PL pay + OT + LB bonus − unpaid leave − advances − deductions
+  // OT already included in basePay (totH includes OT hours) — do not add again
+  const netPay=r2(Math.max(0,basePay+plPay+lbBonus-unpaidDed-totAdv-totDed));
+  return{emp,y,m,dim,perHr:r2(perHr),P,H,A,L,LB,totH:r2(totH),otH:r2(otH),earnedPL,paidPL,unpaidL,unusedPL,wd:r2(wd),basePay,plPay,otPay,lbBonus,unpaidDed,totAdv:r2(totAdv),totDed:r2(totDed),netPay,empAdv};
 }
 
 async function calcSalary(){
@@ -1790,7 +1817,7 @@ async function calcSalary(){
   salData.forEach(s=>{tN+=s.netPay;tO+=s.otPay;tA+=s.totAdv;if(s.payment)tPaid+=s.netPay;});
   document.getElementById('sal-metrics').innerHTML=`
     <div class="mc"><div class="mc-l">Total payable</div><div class="mc-v" style="color:var(--amber)">${fmtINR(tN)}</div></div>
-    <div class="mc"><div class="mc-l">Overtime</div><div class="mc-v" style="color:var(--green)">${fmtINR(tO)}</div></div>
+    <div class="mc"><div class="mc-l">OT hours (info)</div><div class="mc-v" style="color:var(--c2)">${salData.reduce((s,x)=>s+x.otH,0).toFixed(1)}h</div></div>
     <div class="mc"><div class="mc-l">Advances</div><div class="mc-v" style="color:var(--red)">${fmtINR(tA)}</div></div>
     <div class="mc"><div class="mc-l">Paid out</div><div class="mc-v" style="color:var(--teal)">${fmtINR(tPaid)}</div></div>`;
   document.getElementById('sal-cards').innerHTML=salData.map(s=>salCardHTML(s)).join('');
@@ -1822,7 +1849,7 @@ function salCardHTML(s){
 function slipBreakdownHTML(s){
   return`<div class="sr"><span>Base pay (${s.totH}h × ₹${s.perHr}/hr)</span><span>${fmtINR(s.basePay)}</span></div>
     ${s.plPay>0?`<div class="sr pos"><span>Paid leave (${s.paidPL}d × ${s.emp.duty_hours}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.plPay)}</span></div>`:''}
-    ${s.otPay>0?`<div class="sr pos"><span>Overtime (${s.otH}h × ₹${s.perHr}/hr)</span><span>+${fmtINR(s.otPay)}</span></div>`:''}
+    ${s.otH>0?`<div class="sr" style="color:var(--c2);font-size:12px"><span>↳ incl. overtime (${s.otH}h already in base pay)</span><span>${fmtINR(s.otPay)}</span></div>`:''}
     ${s.lbBonus>0?`<div class="sr pu"><span>Leave bonus (${s.LB}d × ${s.emp.duty_hours}h × 50%)</span><span>+${fmtINR(s.lbBonus)}</span></div>`:''}
     ${s.unpaidDed>0?`<div class="sr neg"><span>Unpaid leave (${s.unpaidL}d)</span><span>−${fmtINR(s.unpaidDed)}</span></div>`:''}
     ${s.totAdv>0?`<div class="sr neg"><span>Advance recovered</span><span>−${fmtINR(s.totAdv)}</span></div>`:''}
@@ -2025,7 +2052,7 @@ function renderSummaryReport(){
         <td>${s.P+s.LB}d${s.H>0?' + '+s.H+'h':''}</td>
         <td>${s.totH}h</td>
         <td>${fmtINR(s.basePay)}</td>
-        <td style="color:var(--green)">${s.otPay>0?'+'+fmtINR(s.otPay):'—'}</td>
+        <td style="color:var(--c2)">${s.otH>0?s.otH+'h (in base)':'—'}</td>
         <td style="color:var(--red)">${(s.unpaidDed+s.totAdv+s.totDed)>0?'−'+fmtINR(s.unpaidDed+s.totAdv+s.totDed):'—'}</td>
         <td style="font-weight:600">${fmtINR(s.netPay)}</td>
         <td>${s.payment?`<span class="badge bt">Paid ${s.payment.paid_on}</span>`:`<span class="badge ba">Pending</span>`}</td>
