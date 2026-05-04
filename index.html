@@ -1578,7 +1578,7 @@ function chPM(d){pM+=d;if(pM>12){pM=1;pY++;}if(pM<1){pM=12;pY--;}loadPunches();}
 // PUNCHES
 // ══════════════════════════════════════════════════════════
 async function loadPunches(){
-  const ms=`${aY}-${pad(aM)}`;
+  const ms=`${pY}-${pad(pM)}`;
   const d=document.getElementById('punch-list');
   d.innerHTML='<div class="empty">Loading…</div>';
   // Populate filter dropdown
