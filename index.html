@@ -484,7 +484,14 @@ tr:hover td{background:var(--bg)}
 
         <!-- ADVANCES -->
         <div id="sec-advances" class="sec">
-          <div class="page-title">Advances & deductions</div>
+          <div class="fl" style="margin-bottom:16px;gap:12px;flex-wrap:wrap;align-items:center">
+            <div class="page-title" style="margin:0">Advances & deductions</div>
+            <div class="month-nav">
+              <button class="mnb" onclick="chAdvM(-1)">‹</button>
+              <div class="mnl" id="adv-ml"></div>
+              <button class="mnb" onclick="chAdvM(1)">›</button>
+            </div>
+          </div>
           <div class="card">
             <div class="card-title">New record</div>
             <div class="g4">
@@ -766,6 +773,7 @@ const maskAcct=n=>n?'XXXX'+String(n).slice(-4):'—';
 // ══════════════════════════════════════════════════════════
 let employees=[],currentUser=null,currentProfile=null,staffUser=null;
 let aY=new Date().getFullYear(),aM=new Date().getMonth()+1;
+let advY=new Date().getFullYear(),advM=new Date().getMonth()+1;
 let pY=new Date().getFullYear(),pM=new Date().getMonth()+1;
 let sY=new Date().getFullYear(),sM=new Date().getMonth()+1;
 let rY=new Date().getFullYear(),rM=new Date().getMonth()+1;
@@ -1573,6 +1581,7 @@ async function cycleOvr(empId,date,cur,btn){
 }
 function chM(d){aM+=d;if(aM>12){aM=1;aY++;}if(aM<1){aM=12;aY--;}renderAtt();}
 function chPM(d){pM+=d;if(pM>12){pM=1;pY++;}if(pM<1){pM=12;pY--;}loadPunches();}
+function chAdvM(d){advM+=d;if(advM>12){advM=1;advY++;}if(advM<1){advM=12;advY--;}loadAdvances();}
 
 // ══════════════════════════════════════════════════════════
 // PUNCHES
@@ -1673,8 +1682,9 @@ function cancelEditPunch(){
 // ADVANCES
 // ══════════════════════════════════════════════════════════
 async function loadAdvances(){
-  const ms=`${aY}-${pad(aM)}`;
-  const{data}=await sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))).order('record_date',{ascending:false});
+  document.getElementById('adv-ml').textContent=`${MONTHS[advM-1]} ${advY}`;
+  const ms=`${advY}-${pad(advM)}`;
+  const{data}=await sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(advY,advM))).order('record_date',{ascending:false});
   const adv=data||[];
   const d=document.getElementById('adv-list');
   if(!adv.length){d.innerHTML='<div class="empty">No records this month.</div>';return;}
