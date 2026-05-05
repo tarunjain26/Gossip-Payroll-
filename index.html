@@ -2159,8 +2159,8 @@ async function renderMyAtt(){
   const emp=staffUser;if(!emp){document.getElementById('myatt-wrap').innerHTML='<div class="empty">Not logged in.</div>';return;}
   const ms=`${myY}-${pad(myM)}`;
   const[pR,oR]=await Promise.all([
-    sb.from('punches').select('*').eq('employee_id',emp.id).gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))).order('punch_date').order('punch_time'),
-    sb.from('attendance_overrides').select('*').eq('employee_id',emp.id).gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM)))
+    sb.from('punches').select('*').eq('employee_id',emp.id).gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(myY,myM))).order('punch_date').order('punch_time'),
+    sb.from('attendance_overrides').select('*').eq('employee_id',emp.id).gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(myY,myM)))
   ]);
   const punches=pR.data||[],overrides=oR.data||[],dim=getDIM(myY,myM);
   let rows='';
