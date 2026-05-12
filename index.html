@@ -364,7 +364,7 @@ tr:hover td{background:var(--bg)}
 
           <!-- Add manually card -->
           <div class="card" id="add-emp-card">
-            <div class="card-title">Add employee manually</div>
+            <div class="card-title" id="emp-form-title">Add employee manually</div>
             <div class="g3">
               <div class="field"><label>Full name *</label><input id="e-name" placeholder="Priya Sharma"></div>
               <div class="field"><label>Role</label><input id="e-role" placeholder="Head Baker"></div>
@@ -404,7 +404,8 @@ tr:hover td{background:var(--bg)}
               <div class="field"><label>Bank name</label><input id="e-bbank" placeholder="e.g. SBI"></div>
             </div>
             <div class="fl">
-              <button class="btn btn-p" onclick="addEmployee()">Add employee</button>
+              <button class="btn btn-p" id="emp-save-btn" onclick="saveEmpForm()">Add employee</button>
+              <button class="btn btn-ghost" id="emp-cancel-edit-btn" style="display:none" onclick="cancelEmpEdit()">Cancel edit</button>
               <button class="btn btn-ghost" onclick="clearEmpForm()">Clear</button>
             </div>
             <div id="e-err" class="err-msg"></div>
@@ -725,7 +726,7 @@ tr:hover td{background:var(--bg)}
 
 <div class="modal-bg" id="emp-modal">
   <div class="modal">
-    <div class="modal-title"><span id="empmod-title">Employee details</span><button class="modal-close" onclick="closeModal('emp-modal')">×</button></div>
+    <div class="modal-title"><span id="empmod-title">Employee details</span><div style="display:flex;gap:8px;align-items:center"><button id="emp-modal-edit-btn" class="btn btn-sm" style="color:var(--blue);border-color:var(--blue);display:none;min-height:32px;font-size:12px">Edit details</button><button class="modal-close" onclick="closeModal('emp-modal')">×</button></div></div>
     <div id="emp-modal-body"></div>
   </div>
 </div>
@@ -1134,6 +1135,67 @@ async function addEmployee(data=null){
   if(!data)clearEmpForm();
   return true;
 }
+let editingEmpId=null;
+function saveEmpForm(){
+  if(editingEmpId){updateEmployee();return;}
+  addEmployee().then(ok=>{if(ok){loadAll();alert('Employee added!');}});
+}
+async function updateEmployee(){
+  const g=id=>document.getElementById(id)?.value?.trim()||'';
+  const err=document.getElementById('e-err');
+  const updates={
+    name:g('e-name'),role:g('e-role')||null,employee_code:g('e-code')||null,
+    phone:g('e-phone')||null,shift_name:g('e-shift')||null,
+    shift_type:g('e-shift-type')||'regular',
+    shift_start:g('e-sin')||'09:00',shift_end:g('e-sout')||'19:00',
+    break_start:g('e-break-start')||null,break_end:g('e-break-end')||null,
+    shift2_start:g('e-sin2')||null,shift2_end:g('e-sout2')||null,
+    duty_hours:parseFloat(g('e-dh'))||10,
+    monthly_salary:parseFloat(g('e-sal'))||0,
+    pin:g('e-pin'),
+    join_date:g('e-join')||null,
+    bank_account_name:g('e-bname')||null,
+    bank_account_no:g('e-bno')||null,
+    bank_ifsc:g('e-bifsc')||null,
+    bank_name:g('e-bbank')||null,
+  };
+  if(!updates.name){if(err)err.textContent='Name required';return;}
+  if(!updates.monthly_salary){if(err)err.textContent='Salary required';return;}
+  if(!updates.pin||String(updates.pin).length!==4||isNaN(Number(updates.pin))){if(err)err.textContent='PIN must be 4 digits';return;}
+  if(err)err.textContent='';
+  const{error}=await sb.from('employees').update(updates).eq('id',editingEmpId);
+  if(error){if(err)err.textContent=error.message;return;}
+  cancelEmpEdit();
+  await loadAll();
+  alert('Employee updated!');
+}
+function editEmpForm(id){
+  const emp=employees.find(e=>e.id===id);if(!emp)return;
+  editingEmpId=id;
+  document.getElementById('add-emp-card').scrollIntoView({behavior:'smooth'});
+  document.getElementById('emp-form-title').textContent='Edit — '+emp.name;
+  document.getElementById('emp-save-btn').textContent='Update employee';
+  document.getElementById('emp-cancel-edit-btn').style.display='inline-flex';
+  const s=(id,val)=>{const el=document.getElementById(id);if(el&&val!=null)el.value=val;};
+  s('e-name',emp.name);s('e-role',emp.role);s('e-code',emp.employee_code);
+  s('e-phone',emp.phone);s('e-shift',emp.shift_name);s('e-sal',emp.monthly_salary);
+  s('e-pin',emp.pin);s('e-join',emp.join_date?.slice(0,10));
+  s('e-sin',emp.shift_start?.slice(0,5));s('e-sout',emp.shift_end?.slice(0,5));
+  s('e-dh',emp.duty_hours);
+  s('e-break-start',emp.break_start?.slice(0,5));s('e-break-end',emp.break_end?.slice(0,5));
+  s('e-sin2',emp.shift2_start?.slice(0,5));s('e-sout2',emp.shift2_end?.slice(0,5));
+  s('e-bname',emp.bank_account_name);s('e-bno',emp.bank_account_no);
+  s('e-bifsc',emp.bank_ifsc);s('e-bbank',emp.bank_name);
+  const stEl=document.getElementById('e-shift-type');
+  if(stEl){stEl.value=emp.shift_type||'regular';toggleShiftType();}
+}
+function cancelEmpEdit(){
+  editingEmpId=null;
+  document.getElementById('emp-form-title').textContent='Add employee manually';
+  document.getElementById('emp-save-btn').textContent='Add employee';
+  document.getElementById('emp-cancel-edit-btn').style.display='none';
+  clearEmpForm();
+}
 function clearEmpForm(){
   ['e-name','e-role','e-code','e-phone','e-shift','e-sal','e-pin','e-join','e-bname','e-bno','e-bifsc','e-bbank'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
   ['e-sin','e-sout','e-dh'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.value=['09:00','19:00','10'][i];});
@@ -1192,6 +1254,14 @@ function viewEmpDetails(id){
       <div><span style="color:var(--c2)">IFSC code</span><br><strong>${emp.bank_ifsc||'—'}</strong></div>
       <div><span style="color:var(--c2)">Bank name</span><br><strong>${emp.bank_name||'—'}</strong></div>
     </div>`;
+  // Add edit button to modal if owner
+  const editBtn=document.getElementById('emp-modal-edit-btn');
+  if(editBtn){
+    if(currentProfile?.role==='owner'){
+      editBtn.style.display='inline-flex';
+      editBtn.onclick=()=>{closeModal('emp-modal');editEmpForm(id);};
+    }else{editBtn.style.display='none';}
+  }
   openModal('emp-modal');
 }
 function renderEmpList(){
@@ -1216,6 +1286,7 @@ function renderEmpList(){
         <td>
           <div class="fl" style="gap:4px">
             <button class="btn btn-sm btn-ghost" onclick="viewEmpDetails('${e.id}')">Details</button>
+            ${isOwner?`<button class="btn btn-sm" style="color:var(--blue);border-color:var(--blue)" onclick="editEmpForm('${e.id}')">Edit</button>`:''}
             ${isOwner?`<button class="btn btn-r btn-sm" onclick="removeEmp('${e.id}','${e.name}')">Remove</button>`:''}
           </div>
         </td>
