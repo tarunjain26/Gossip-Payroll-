@@ -393,6 +393,15 @@ tr:hover td{background:var(--bg)}
             <div class="g4">
               <div class="field"><label>Monthly salary ₹ *</label><input id="e-sal" type="number" placeholder="18000"></div>
               <div class="field"><label>Duty hours/day *</label><input id="e-dh" type="number" value="10"></div>
+              <div class="field"><label>Max paid leaves/month</label>
+                <select id="e-pl-policy">
+                  <option value="0">0 — No paid leave</option>
+                  <option value="1">1 — 1 PL per 24 days</option>
+                  <option value="2">2 — 1 PL per 14 days</option>
+                  <option value="3">3 — 1 PL per 10 days</option>
+                  <option value="4" selected>4 — 1 PL per 6 days</option>
+                </select>
+              </div>
               <div class="field"><label>4-digit PIN *</label><input id="e-pin" type="number" placeholder="1234"></div>
               <div class="field"><label>Join date</label><input id="e-join" type="date"></div>
             </div>
@@ -1117,6 +1126,7 @@ async function addEmployee(data=null){
     break_start:g('e-break-start')||null,break_end:g('e-break-end')||null,
     shift2_start:g('e-sin2')||null,shift2_end:g('e-sout2')||null,
     duty_hours:parseFloat(g('e-dh'))||10,
+    pl_policy:parseInt(g('e-pl-policy'))||4,
     monthly_salary:parseFloat(g('e-sal'))||0,
     pin:g('e-pin'),
     join_date:g('e-join')||null,
@@ -1151,6 +1161,7 @@ async function updateEmployee(){
     break_start:g('e-break-start')||null,break_end:g('e-break-end')||null,
     shift2_start:g('e-sin2')||null,shift2_end:g('e-sout2')||null,
     duty_hours:parseFloat(g('e-dh'))||10,
+    pl_policy:parseInt(g('e-pl-policy'))||4,
     monthly_salary:parseFloat(g('e-sal'))||0,
     pin:g('e-pin'),
     join_date:g('e-join')||null,
@@ -1188,6 +1199,7 @@ function editEmpForm(id){
   s('e-bifsc',emp.bank_ifsc);s('e-bbank',emp.bank_name);
   const stEl=document.getElementById('e-shift-type');
   if(stEl){stEl.value=emp.shift_type||'regular';toggleShiftType();}
+  const plEl=document.getElementById('e-pl-policy');if(plEl)plEl.value=emp.pl_policy!=null?emp.pl_policy:4;
 }
 function cancelEmpEdit(){
   editingEmpId=null;
@@ -1202,6 +1214,7 @@ function clearEmpForm(){
   const st=document.getElementById('e-shift-type');if(st)st.value='regular';
   ['e-break-start','e-break-end','e-sin2','e-sout2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   toggleShiftType();
+  const plReset=document.getElementById('e-pl-policy');if(plReset)plReset.value='4';
 }
 async function removeEmp(id,name){
   if(!confirm(`Remove ${name} from active staff?\n\nTheir attendance, salary and punch history will be preserved. You can restore them anytime.`))return;
@@ -1243,6 +1256,7 @@ function viewEmpDetails(id){
       <div><span style="color:var(--c2)">Shift</span><br><strong>${emp.shift_name||'—'}</strong><br>
         <span style="font-size:11px;color:var(--c2)">${fmtShiftDisplay(emp)}</span></div>
       <div><span style="color:var(--c2)">Duty hours</span><br><strong>${emp.duty_hours}h/day</strong></div>
+      <div><span style="color:var(--c2)">Max PL/month</span><br><strong>${emp.pl_policy!=null?emp.pl_policy:4} days</strong></div>
       <div><span style="color:var(--c2)">Monthly salary</span><br><strong>${fmtINR(emp.monthly_salary)}</strong></div>
       <div><span style="color:var(--c2)">Hourly rate</span><br><strong>₹${hr}/hr</strong></div>
     </div>
@@ -1840,8 +1854,11 @@ function computeSlip(emp,y,m,dim,punches,overrides,advances){
   }
   const r2=n=>Math.round(n*100)/100;
 
-  // PL earned: 1 per 6 working days, max 4 per month
-  const earnedPL=Math.min(4,Math.floor(wd/6));
+  // PL earned based on employee's pl_policy (max PLs allowed per month)
+  // Rate: max 4 = 1 per 6 days, max 2 = 1 per 14 days, max 3 = 1 per 10 days, max 1 = 1 per 24 days
+  const plMax=emp.pl_policy!=null?parseInt(emp.pl_policy):4;
+  const plRate=plMax===0?Infinity:plMax===1?24:plMax===2?14:plMax===3?10:6;
+  const earnedPL=plMax===0?0:Math.min(plMax,Math.floor(wd/plRate));
   // PL actually taken (marked L in attendance)
   const paidPL=Math.min(L,earnedPL);
   // Unpaid leaves = leaves taken beyond earned PL
@@ -1995,6 +2012,22 @@ async function confirmPay(){
 // ══════════════════════════════════════════════════════════
 async function fetchSlipData(empId,y,m){
   const emp=employees.find(e=>e.id===empId)||allEmployees.find(e=>e.id===empId);if(!emp)return null;
+  // Check if a finalized slip exists — if so, use it (locks in salary at time of finalization)
+  const{data:savedSlip}=await sb.from('salary_slips')
+    .select('slip_data,status')
+    .eq('employee_id',empId).eq('slip_year',y).eq('slip_month',m)
+    .maybeSingle();
+  if(savedSlip?.slip_data&&savedSlip.status==='finalized'){
+    // Also fetch current payment status (may have changed after finalization)
+    const{data:payData}=await sb.from('salary_payments').select('*')
+      .eq('employee_id',empId).eq('payment_year',y).eq('payment_month',m);
+    const saved=savedSlip.slip_data;
+    // Re-attach the live employee object in case name/role changed
+    saved.emp={...saved.emp,...emp};
+    saved.payment=payData?.[0]||null;
+    return saved;
+  }
+  // Not finalized — calculate live
   const ms=`${y}-${pad(m)}`;const dim=getDIM(y,m);
   const nextM=m===12?1:m+1,nextY=m===12?y+1:y;
   const nms=`${nextY}-${pad(nextM)}`;
@@ -2006,7 +2039,6 @@ async function fetchSlipData(empId,y,m){
     sb.from('advances').select('*').eq('employee_id',empId).gte('record_date',nms+'-01').lte('record_date',nms+'-10')
   ]);
   const isPaid=!!(payR.data?.[0]);
-  // Include next month's advances (1–10) only if current month salary not yet paid
   const allAdv=[...(aR.data||[]),...(!isPaid?nextAdvR.data||[]:[])];
   return{...computeSlip(emp,y,m,dim,pR.data||[],oR.data||[],allAdv),payment:payR.data?.[0]||null};
 }
