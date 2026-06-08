@@ -564,6 +564,7 @@ tr:hover td{background:var(--bg)}
               <button class="mnb" onclick="chRM(1)">›</button>
             </div>
             <button class="btn btn-t" onclick="exportReport()">⬇ Export CSV</button>
+            <button class="btn" style="background:#2d6ef7;color:#fff;border-color:#2d6ef7" onclick="exportRazorpayX()">⬇ RazorpayX Payout</button>
           </div>
           <div class="report-tabs">
             <button class="rtab on" onclick="showReport('summary')">Monthly summary</button>
@@ -2223,9 +2224,9 @@ async function loadReports(){
   const ms=`${rY}-${pad(rM)}`;
   const dim=getDIM(rY,rM);
   const[pR,oR,aR,payR]=await Promise.all([
-    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(aY,aM))),
-    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(aY,aM))),
+    sb.from('punches').select('*').gte('punch_date',ms+'-01').lte('punch_date',ms+'-'+pad(getDIM(rY,rM))).limit(5000),
+    sb.from('attendance_overrides').select('*').gte('override_date',ms+'-01').lte('override_date',ms+'-'+pad(getDIM(rY,rM))),
+    sb.from('advances').select('*').gte('record_date',ms+'-01').lte('record_date',ms+'-'+pad(getDIM(rY,rM))),
     sb.from('salary_payments').select('*').eq('payment_year',rY).eq('payment_month',rM)
   ]);
   const payments=payR.data||[];
@@ -2335,6 +2336,57 @@ function renderAdvReport(){
     </table></div></div>`;
 }
 
+async function exportRazorpayX(){
+  if(!reportData?.slips?.length){alert('Open the Reports tab and select a month first');return;}
+  const repData=reportData.slips;
+  // Build RazorpayX bulk payout format
+  // Headers per RazorpayX template
+  const headers=[
+    'Beneficiary Name (Mandatory) Special characters not supported',
+    "Beneficiary's Account Number (Mandatory) Typically 9-18 digits",
+    "IFSC Code (Mandatory) 11 digit code of the beneficiary's bank account. Eg. HDFC0004277",
+    'Payout Amount (Mandatory) Amount should be in rupees',
+    'Payout Mode (Mandatory) Select IMPS/NEFT/RTGS',
+    'Payout Narration (Optional) Will appear on bank statement (max 30 char with no special characters)',
+    'Notes (Optional) A note for internal reference',
+    'Phone Number (Optional)',
+    'Email ID (Optional)',
+    'Contact Reference ID (Optional) Eg: Employee ID or Customer ID',
+    'Payout Reference ID (Optional) Eg: Bill no or Invoice No or Pay ID'
+  ];
+  const rows=[headers];
+  for(const s of repData){
+    const emp=s.emp;
+    // Skip employees with no bank details or zero net pay
+    if(!emp.bank_account_no||!emp.bank_ifsc)continue;
+    if(s.netPay<=0)continue;
+    // Narration: max 30 chars, no special chars
+    const narration=`Salary ${MONTHS[rM-1].slice(0,3)} ${rY}`.replace(/[^a-zA-Z0-9 ]/g,'').slice(0,30);
+    const note=`${emp.name} ${MONTHS[rM-1]} ${rY} salary`;
+    rows.push([
+      (emp.bank_account_name||emp.name).replace(/[^a-zA-Z0-9 ]/g,''),
+      emp.bank_account_no||'',
+      emp.bank_ifsc||'',
+      s.netPay,
+      'IMPS',
+      narration,
+      note.slice(0,50),
+      emp.phone||'',
+      '',
+      emp.employee_code||emp.id?.slice(0,8)||'',
+      `SAL-${rY}${pad(rM)}-${emp.employee_code||emp.id?.slice(0,6)||''}`
+    ]);
+  }
+  if(rows.length<=1){alert('No employees with bank details found. Please add bank details in Team → Edit employee.');return;}
+  // Build CSV
+  const csv=rows.map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`GossipPayroll_RazorpayX_${MONTHS[rM-1]}_${rY}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 function exportReport(){
   if(!reportData)return;
   let csv='',fn='';
