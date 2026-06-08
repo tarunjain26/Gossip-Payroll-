@@ -721,8 +721,10 @@ tr:hover td{background:var(--bg)}
     </div>
     <div id="day-modal-punches" style="margin-bottom:14px;min-height:32px"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <button class="btn" style="background:var(--gbg);color:var(--green);border-color:var(--green);justify-content:center" onclick="setDayStatus('P')">Mark Present</button>
       <button class="btn" style="background:var(--rbg);color:var(--red);border-color:var(--red);justify-content:center" onclick="setDayStatus('A')">Mark Absent</button>
       <button class="btn" style="background:#e6f1fb;color:#185fa5;border-color:#378add;justify-content:center" onclick="setDayStatus('L')">Mark Paid Leave</button>
+      <button class="btn" style="background:#faeeda;color:#7a4500;border-color:#f0c060;justify-content:center" onclick="setDayStatus('H')">Mark Half Day</button>
     </div>
     <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-bottom:8px" onclick="setDayStatus('')">Clear (reset to auto)</button>
     <button class="btn" style="width:100%;justify-content:center;background:var(--bg2);border-color:var(--bd2)" onclick="goEditPunchFromDay()">✎ Edit punches for this day</button>
@@ -1711,15 +1713,31 @@ async function setDayStatus(status){
       {employee_id:empId,override_date:date,status,created_by:currentUser?.id||null},
       {onConflict:'employee_id,override_date'}
     );
+    // Update tile colour immediately for manual status
+    if(btn){
+      const cfg=SCFG[status]||SCFG[''];
+      btn.style.background=cfg.bg;btn.style.color=cfg.tc;
+      btn.setAttribute('onclick',`openDayModal('${empId}','${date}','${status}',this)`);
+      btn.querySelector('.wdot')?.remove();
+    }
   }else{
     await sb.from('attendance_overrides').delete().eq('employee_id',empId).eq('override_date',date);
-  }
-  // Update tile colour immediately
-  if(btn){
-    const cfg=SCFG[status]||SCFG[''];
-    btn.style.background=cfg.bg;btn.style.color=cfg.tc;
-    btn.setAttribute('onclick',`openDayModal('${empId}','${date}','${status}',this)`);
-    btn.querySelector('.wdot')?.remove();
+    // For clear: fetch punches to determine auto status and update tile
+    if(btn){
+      const{data:dp}=await sb.from('punches').select('punch_type,punch_time,punch_date')
+        .eq('employee_id',empId).eq('punch_date',date);
+      const emp=employees.find(e=>e.id===empId);
+      const{hours,autoOut}=dp?.length?calcDayResult(dp,emp?.shift_end,date):{hours:0,autoOut:false};
+      let autoSt='';
+      if(hours>0){autoSt=hours>=(emp?.duty_hours||10)*0.8?'P':hours>=(emp?.duty_hours||10)*0.4?'H':'P';}
+      const cfg=SCFG[autoSt]||SCFG[''];
+      btn.style.background=cfg.bg;btn.style.color=cfg.tc;
+      btn.setAttribute('onclick',`openDayModal('${empId}','${date}','${autoSt}',this)`);
+      btn.querySelector('.wdot')?.remove();
+      if(autoOut){
+        const dot=document.createElement('div');dot.className='wdot';btn.appendChild(dot);
+      }
+    }
   }
   closeModal('day-modal');
 }
