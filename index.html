@@ -713,6 +713,22 @@ tr:hover td{background:var(--bg)}
   <img id="selfie-modal-img" src="" style="max-width:90vw;max-height:90vh;border-radius:14px;object-fit:contain">
 </div>
 
+<div class="modal-bg" id="day-modal">
+  <div class="modal" style="max-width:340px;width:90vw">
+    <div class="modal-title">
+      <span id="day-modal-title">Day details</span>
+      <button class="modal-close" onclick="closeModal('day-modal')">×</button>
+    </div>
+    <div id="day-modal-punches" style="margin-bottom:14px;min-height:32px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <button class="btn" style="background:var(--rbg);color:var(--red);border-color:var(--red);justify-content:center" onclick="setDayStatus('A')">Mark Absent</button>
+      <button class="btn" style="background:#e6f1fb;color:#185fa5;border-color:#378add;justify-content:center" onclick="setDayStatus('L')">Mark Paid Leave</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-bottom:8px" onclick="setDayStatus('')">Clear (reset to auto)</button>
+    <button class="btn" style="width:100%;justify-content:center;background:var(--bg2);border-color:var(--bd2)" onclick="goEditPunchFromDay()">✎ Edit punches for this day</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="user-modal">
   <div class="modal" style="max-width:280px">
     <div class="modal-title"><span id="um-name">Account</span><button class="modal-close" onclick="closeModal('user-modal')">×</button></div>
@@ -1614,7 +1630,7 @@ async function renderAtt(){
       const hasOpenIn=dp.some(p=>p.punch_type==='in')&&!dp.some(p=>p.punch_type==='out');
       let chipBg=cfg.bg,chipTc=cfg.tc;
       if(isToday2&&hasOpenIn&&!st){chipBg='var(--abg)';chipTc='var(--amber)';}
-      chips+=`<button class="dchip" style="background:${chipBg};color:${chipTc};position:relative;height:auto;min-height:44px;padding:3px 2px" onclick="cycleOvr('${emp.id}','${ds}','${st}',this)" title="${ds} · ${hours.toFixed(1)}h${autoOut?' (auto punch-out)':''} ${isToday2&&hasOpenIn?'· Currently IN':''}">
+      chips+=`<button class="dchip" style="background:${chipBg};color:${chipTc};position:relative;height:auto;min-height:44px;padding:3px 2px" onclick="openDayModal('${emp.id}','${ds}','${st}',this)" title="${ds} · ${hours.toFixed(1)}h${autoOut?' (auto punch-out)':''} ${isToday2&&hasOpenIn?'· Currently IN':''}">
         <span style="font-size:8px;opacity:0.55">${DOW[dow]}</span>
         <span style="font-size:11px;font-weight:700">${d}</span>
         ${dp.length?`<span style="font-size:8px;line-height:1.3;text-align:center;opacity:0.85">${dp.map(p=>(p.punch_type==='in'?'▲':'▼')+p.punch_time?.slice(0,5)).join('<br>')}</span>`:''}
@@ -1656,13 +1672,71 @@ async function renderAtt(){
     });
   },100);
 }
-async function cycleOvr(empId,date,cur,btn){
-  const idx=ATT_CYC.indexOf(cur);const next=ATT_CYC[(idx+1)%ATT_CYC.length];
-  if(next){await sb.from('attendance_overrides').upsert({employee_id:empId,override_date:date,status:next,created_by:currentUser?.id||null},{onConflict:'employee_id,override_date'});}
-  else{await sb.from('attendance_overrides').delete().eq('employee_id',empId).eq('override_date',date);}
-  const cfg=SCFG[next]||SCFG[''];btn.style.background=cfg.bg;btn.style.color=cfg.tc;
-  btn.setAttribute('onclick',`cycleOvr('${empId}','${date}','${next}',this)`);
-  btn.querySelector('.wdot')?.remove();
+// Keep cycleOvr for legacy compatibility but redirect to modal
+function cycleOvr(empId,date,cur,btn){openDayModal(empId,date,cur,btn);}
+
+let _dayModal={empId:null,date:null,btn:null};
+async function openDayModal(empId,date,cur,btn){
+  _dayModal={empId,date,btn};
+  // Set title
+  const d=new Date(date+'T00:00:00');
+  document.getElementById('day-modal-title').textContent=
+    `${d.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}`;
+  // Fetch punches for this day
+  const{data:dp}=await sb.from('punches').select('*')
+    .eq('employee_id',empId).eq('punch_date',date).order('punch_time');
+  const punches=dp||[];
+  const punchEl=document.getElementById('day-modal-punches');
+  if(punches.length){
+    punchEl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px">`+
+      punches.map(p=>`<span class="badge ${p.punch_type==='in'?'bg':'br'}" style="font-size:12px">
+        ${p.punch_type==='in'?'▲ IN':'▼ OUT'} ${p.punch_time?.slice(0,5)}
+        ${p.source==='admin'||p.source==='manager'?'<span style="font-size:10px;opacity:0.7"> ✎</span>':''}
+      </span>`).join('')+`</div>`;
+  } else {
+    punchEl.innerHTML='<div style="font-size:13px;color:var(--c2)">No punches recorded</div>';
+  }
+  openModal('day-modal');
+}
+async function setDayStatus(status){
+  const{empId,date,btn}=_dayModal;
+  if(!empId||!date)return;
+  if(status){
+    await sb.from('attendance_overrides').upsert(
+      {employee_id:empId,override_date:date,status,created_by:currentUser?.id||null},
+      {onConflict:'employee_id,override_date'}
+    );
+  }else{
+    await sb.from('attendance_overrides').delete().eq('employee_id',empId).eq('override_date',date);
+  }
+  // Update tile colour immediately
+  if(btn){
+    const cfg=SCFG[status]||SCFG[''];
+    btn.style.background=cfg.bg;btn.style.color=cfg.tc;
+    btn.setAttribute('onclick',`openDayModal('${empId}','${date}','${status}',this)`);
+    btn.querySelector('.wdot')?.remove();
+  }
+  closeModal('day-modal');
+}
+function goEditPunchFromDay(){
+  const{empId,date}=_dayModal;
+  closeModal('day-modal');
+  // Switch to punch log tab, set month to match date, pre-select employee
+  const d=new Date(date+'T00:00:00');
+  pY=d.getFullYear();pM=d.getMonth()+1;
+  gp('punches');
+  // Pre-fill the add punch form for this date and employee
+  setTimeout(()=>{
+    const empSel=document.getElementById('p-emp');
+    if(empSel)empSel.value=empId;
+    const dateSel=document.getElementById('p-date');
+    if(dateSel)dateSel.value=date;
+    // Also set the filter to show this employee
+    const filter=document.getElementById('punch-filter-emp');
+    if(filter){filter.value=empId;loadPunches();}
+    // Scroll to form
+    document.getElementById('p-date')?.scrollIntoView({behavior:'smooth'});
+  },300);
 }
 function chM(d){aM+=d;if(aM>12){aM=1;aY++;}if(aM<1){aM=12;aY--;}renderAtt();}
 function chPM(d){pM+=d;if(pM>12){pM=1;pY++;}if(pM<1){pM=12;pY--;}loadPunches();}
