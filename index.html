@@ -1610,6 +1610,8 @@ async function renderAtt(){
   const attEmpFilter=document.getElementById('att-emp-filter')?.value||'';
   const filteredEmps=attEmpFilter?employees.filter(e=>e.id===attEmpFilter):employees;
   document.getElementById('att-wrap').innerHTML=filteredEmps.map((emp,ri)=>{
+    const empPunches=punches.filter(p=>p.employee_id===emp.id);
+    const empOverrides=overrides.filter(o=>o.employee_id===emp.id);
     let P=0,H=0,A=0,L=0,LB=0,chips='';
     for(let d=1;d<=dim;d++){
       const ds=`${aY}-${pad(aM)}-${pad(d)}`;
@@ -1638,11 +1640,14 @@ async function renderAtt(){
       </button>`;
     }
     const wd=P+LB+H*0.5;const earnedPL=Math.floor(wd/6);
+    // Calculate salary for this month using existing punch/override data
+    const slip=computeSlip(emp,aY,aM,getDIM(aY,aM),empPunches,empOverrides,[]);
     return`<div class="att-card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
         <div class="av" style="width:38px;height:38px;font-size:14px;background:${AVBG[ri%6]};color:${AVTC[ri%6]}">${initials(emp.name)}</div>
         <div style="flex:1"><div style="font-weight:600">${emp.name}</div><div style="font-size:11px;color:var(--c2)">${emp.role||''}</div></div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap">
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          <span class="badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:12px;padding:3px 8px">S:${fmtINR(slip.grossPay)}</span>
           ${P?`<span class="badge bg">P:${P}</span>`:''}${A?`<span class="badge br">A:${A}</span>`:''}
           ${H?`<span class="badge ba">H:${H}</span>`:''}${L?`<span class="badge bb">PL:${L}</span>`:''}
           ${LB?`<span class="badge bp">LB:${LB}</span>`:''}<span class="badge bgr">Earned PL:${earnedPL}</span>
